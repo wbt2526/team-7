@@ -24,9 +24,10 @@ A FastAPI-based backend for a travel booking system with:
 ## Setup
 
 1. Clone repo and enter folder:
+2. 
 
 ```bash
-cd /Users/omarbarra/Documents/Erasmus/Web\ Base\ Technology/Project/team-7
+git clone git@github.com:wbt2526/team-7.git
 ```
 
 2. Create/activate virtual environment:
