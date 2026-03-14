@@ -6,7 +6,7 @@ from enum import Enum
 from datetime import datetime
 
 # Database configuration - REPLACE WITH YOUR PASSWORD
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://webapp:pristiniAI12@localhost/webapp"
+SQLALCHEMY_DATABASE_URL = "mysql+pymysql://webapp:viper''@localhost/webapp"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
