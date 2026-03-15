@@ -11,7 +11,7 @@ A FastAPI-based backend for a travel booking system with:
 
 - Users, trips, bookings, payments
 - SQLAlchemy ORM models
-- MySQL (via `pymysql`) database
+- MySQL (via `MariaDB`) database
 - Authentication/password hashing using `bcrypt`
 - FastAPI endpoints (in `main.py`)
 
