@@ -6,16 +6,11 @@ from enum import Enum
 from datetime import datetime
 
 # Database configuration - REPLACE WITH YOUR PASSWORD
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://webapp:viper''@localhost/webapp"
+SQLALCHEMY_DATABASE_URL = "mysql+pymysql://webapp:your_password@localhost/webapp"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
-
-# Enums
-class UserRole(str, Enum):
-    user = "user"
-    admin = "admin"
 
 class TripStatus(str, Enum):
     available = "available"
@@ -34,18 +29,18 @@ class PaymentStatus(str, Enum):
     failed = "failed"
 
 # SQLAlchemy Models
-class UserDB(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    first_name = Column(String(50), nullable=False)
-    last_name = Column(String(50), nullable=False)
-    email = Column(String(100), unique=True, nullable=False)
-    password = Column(String(256), nullable=False)
-    role = Column(String(20), nullable=False, default="user")
-    created_at = Column(DateTime, default=datetime.utcnow)
+# class UserDB(Base):
+#     __tablename__ = "users"
+#     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+#     first_name = Column(String(50), nullable=False)
+#     last_name = Column(String(50), nullable=False)
+#     email = Column(String(100), unique=True, nullable=False)
+#     password = Column(String(256), nullable=False)
+#     role = Column(String(20), nullable=False, default="user")
+#     created_at = Column(DateTime, default=datetime.utcnow)
     
-    bookings = relationship("BookingDB", back_populates="user")
-    created_trips = relationship("TripDB", back_populates="creator")
+#     bookings = relationship("BookingDB", back_populates="user")
+#     created_trips = relationship("TripDB", back_populates="creator")
 
 class TripDB(Base):
     __tablename__ = "trips"
