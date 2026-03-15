@@ -1,6 +1,4 @@
-from sqlalchemy import SmallInteger, SmallInteger, create_engine, ForeignKey, DateTime, Enum as SQLEnum, Text, DECIMAL 
-from sqlalchemy.orm import sessionmaker, relationship
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, SmallInteger, SmallInteger, create_engine, ForeignKey, DateTime, Enum as SQLEnum, Text, DECIMAL 
 from enum import Enum
 from database import Base
 from datetime import datetime
@@ -18,8 +16,8 @@ class UserDB(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     password = Column(String(256), nullable=False)
     role = Column(SmallInteger, nullable=False, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow) 
+    # created_at = Column(DateTime, default=datetime.utcnow) 
     # role = Column(SmallInteger, nullable=False, default=0)
     
-    bookings = relationship("BookingDB", back_populates="user")
-    created_trips = relationship("TripDB", back_populates="creator")
+    # bookings = relationship("BookingDB", back_populates="user")
+    # created_trips = relationship("TripDB", back_populates="creator")
