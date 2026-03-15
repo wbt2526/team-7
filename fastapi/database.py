@@ -1,9 +1,6 @@
-from sqlalchemy import create_engine, ForeignKey, DateTime, Enum as SQLEnum, Text, DECIMAL
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
-from sqlalchemy import Column, Integer, String
-from enum import Enum
-from datetime import datetime
+from sqlalchemy.orm import sessionmaker
 
 # Database configuration - REPLACE WITH YOUR PASSWORD
 SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:viper''@localhost/webapp"

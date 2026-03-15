@@ -4,19 +4,19 @@ from passlib.context import CryptContext
 from .models import UserDB
 from .schemas import UserCreate
 
-# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 def create_user(db: Session, user: UserCreate):
     db_user = db.query(UserDB).filter(UserDB.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # hashed_password = pwd_context.hash(user.password)
+    hashed_password = pwd_context.hash(user.password)
     db_user = UserDB(
         first_name=user.first_name,
         last_name=user.last_name,
         email=user.email,
-        password=user.password,
+        password=hashed_password,
         role=user.role
     )
 

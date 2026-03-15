@@ -1,12 +1,12 @@
 from pprint import pp
 from typing import List, Optional
-from datetime import datetime
-from decimal import Decimal
 from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 from database import *
 from user import models as use_models, crud as user_crud, schemas as user_schemas
+# Authentication
+from auth import login_user, Token
+from fastapi.security import OAuth2PasswordRequestForm  
 
 app = FastAPI()
 
@@ -39,6 +39,17 @@ def update_user(user_id: int, user: user_schemas.UserCreate, db: Session = Depen
 @app.delete("/users/{user_id}", response_model=user_schemas.User)
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     return user_crud.delete_user(db, user_id)
+
+
+
+@app.post("/login", response_model=Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    return login_user(db, form_data.username, form_data.password)
+
+@app.put("/login", response_model=Token)
+def refresh_login(token: str, db: Session = Depends(get_db)):
+    return login_user(db, token, None)
+
 # # ========== ROOT ENDPOINT ==========
 
 @app.get("/")
