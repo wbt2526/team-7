@@ -3,7 +3,7 @@
 TEAM MEMBERS
 1- Omar Barra
 2- Ikram Kalkoul
-3- Alex 
+3- Aleksa Sovrlic
 
 ## Overview
 
