@@ -299,6 +299,34 @@ def read_booking(booking_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Booking not found")
     return db_booking
 
+@app.delete("/bookings/{booking_id}")
+def delete_booking(booking_id: int, user_id: int, db: Session = Depends(get_db)):
+    db_booking = db.query(BookingDB).filter(BookingDB.id == booking_id).first()
+    if db_booking is None:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if db_booking.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Only the owner can cancel this booking")
+
+    if db_booking.booking_status == "cancelled":
+        raise HTTPException(status_code=400, detail="Booking is already cancelled")
+
+    db_booking.booking_status = "cancelled"
+
+    db_trip = db.query(TripDB).filter(TripDB.id == db_booking.trip_id).first()
+    if db_trip:
+        seats_to_return = db_booking.adults + db_booking.children
+        db_trip.remaining_places += seats_to_return
+        if db_trip.status == "full":
+            db_trip.status = "available"
+
+    try:
+        db.commit()
+        return {"message": "Booking cancelled successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
 # ========== PAYMENT ENDPOINTS ==========
 
 @app.post("/payments/", response_model=Payment)

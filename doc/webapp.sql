@@ -176,20 +176,20 @@ ALTER TABLE `users`
 -- Constraints for table `bookings`
 --
 ALTER TABLE `bookings`
-  ADD CONSTRAINT `1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
-  ADD CONSTRAINT `2` FOREIGN KEY (`trip_id`) REFERENCES `trips` (`id`);
+  ADD CONSTRAINT `fk_booking_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `fk_booking_trip` FOREIGN KEY (`trip_id`) REFERENCES `trips` (`id`);
 
 --
 -- Constraints for table `payments`
 --
 ALTER TABLE `payments`
-  ADD CONSTRAINT `1` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`);
+  ADD CONSTRAINT `fk_payment_booking` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`);
 
 --
 -- Constraints for table `trips`
 --
 ALTER TABLE `trips`
-  ADD CONSTRAINT `1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+  ADD CONSTRAINT `fk_trip_creator` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
