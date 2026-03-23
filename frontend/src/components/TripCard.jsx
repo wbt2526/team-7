@@ -1,5 +1,5 @@
 import React from "react";
-
+import { Link } from 'react-router-dom';
 const TripCard = ({ title, price, image, remaining_places }) => {
   const isSoldOut = remaining_places === 0;
 
@@ -23,17 +23,16 @@ const TripCard = ({ title, price, image, remaining_places }) => {
           )}
         </div>
 
-        <button
-          type="button"
-          disabled={isSoldOut}
-          className={`mt-4 w-full rounded py-2 font-medium transition-colors ${
+        <Link
+          to={`/trip/${title.toLowerCase().replace(/ /g, '-')}`}
+          className={`mt-4 block text-center w-full rounded py-2 font-medium transition-colors ${
             isSoldOut
-              ? "cursor-not-allowed bg-gray-300 text-gray-500"
+              ? "pointer-events-none bg-gray-300 text-gray-500"
               : "bg-blue-600 text-white hover:bg-blue-700"
           }`}
         >
           View Details
-        </button>
+        </Link>
       </div>
     </div>
   );
