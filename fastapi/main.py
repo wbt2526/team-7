@@ -2,12 +2,26 @@ from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 import bcrypt
 from database import *
 
+# 1. Kreiramo aplikaciju SAMO JEDNOM
 app = FastAPI()
+
+# 2. ODMAH dodajemo CORS podešavanja
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ========== PYDANTIC MODELS ==========
 
@@ -156,7 +170,6 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
 
 @app.post("/trips/", response_model=Trip)
 def create_trip(trip: TripCreate, user_id: int, db: Session = Depends(get_db)):
-    # Check if user is admin
     user = db.query(UserDB).filter(UserDB.id == user_id).first()
     if not user or user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -196,69 +209,23 @@ def read_trip(trip_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Trip not found")
     return db_trip
 
-@app.put("/trips/{trip_id}", response_model=Trip)
-def update_trip(trip_id: int, trip_update: TripCreate, user_id: int, db: Session = Depends(get_db)):
-    # Check if user is admin
-    user = db.query(UserDB).filter(UserDB.id == user_id).first()
-    if not user or user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    db_trip = db.query(TripDB).filter(TripDB.id == trip_id).first()
-    if db_trip is None:
-        raise HTTPException(status_code=404, detail="Trip not found")
-    
-    # Update fields
-    for key, value in trip_update.dict().items():
-        setattr(db_trip, key, value)
-    
-    try:
-        db.commit()
-        db.refresh(db_trip)
-        return db_trip
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.delete("/trips/{trip_id}")
-def delete_trip(trip_id: int, user_id: int, db: Session = Depends(get_db)):
-    # Check if user is admin
-    user = db.query(UserDB).filter(UserDB.id == user_id).first()
-    if not user or user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    db_trip = db.query(TripDB).filter(TripDB.id == trip_id).first()
-    if db_trip is None:
-        raise HTTPException(status_code=404, detail="Trip not found")
-    
-    # Soft delete - change status to cancelled
-    db_trip.status = "cancelled"
-    db.commit()
-    
-    return {"message": "Trip cancelled successfully"}
-
 # ========== BOOKING ENDPOINTS ==========
 
 @app.post("/bookings/", response_model=Booking)
 def create_booking(booking: BookingCreate, user_id: int, db: Session = Depends(get_db)):
-    # Check if trip exists and is available
     trip = db.query(TripDB).filter(TripDB.id == booking.trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
     
     if trip.status != "available":
-        raise HTTPException(status_code=400, detail="Trip is not available for booking")
+        raise HTTPException(status_code=400, detail="Trip is not available")
     
-    # Calculate total seats requested
     total_seats = booking.adults + booking.children
-    
-    # Check if enough places available
     if trip.remaining_places < total_seats:
-        raise HTTPException(status_code=400, detail="Not enough places available")
+        raise HTTPException(status_code=400, detail="Not enough places")
     
-    # Calculate total price
     total_price = float(trip.price) * total_seats
     
-    # Create booking
     db_booking = BookingDB(
         user_id=user_id,
         trip_id=booking.trip_id,
@@ -270,14 +237,9 @@ def create_booking(booking: BookingCreate, user_id: int, db: Session = Depends(g
     
     try:
         db.add(db_booking)
-        
-        # Update remaining places
         trip.remaining_places -= total_seats
-        
-        # If no places left, mark as full
         if trip.remaining_places == 0:
             trip.status = "full"
-        
         db.commit()
         db.refresh(db_booking)
         return db_booking
@@ -292,51 +254,14 @@ def read_bookings(user_id: Optional[int] = None, skip: int = 0, limit: int = 100
         query = query.filter(BookingDB.user_id == user_id)
     return query.offset(skip).limit(limit).all()
 
-@app.get("/bookings/{booking_id}", response_model=Booking)
-def read_booking(booking_id: int, db: Session = Depends(get_db)):
-    db_booking = db.query(BookingDB).filter(BookingDB.id == booking_id).first()
-    if db_booking is None:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    return db_booking
-
-@app.delete("/bookings/{booking_id}")
-def delete_booking(booking_id: int, user_id: int, db: Session = Depends(get_db)):
-    db_booking = db.query(BookingDB).filter(BookingDB.id == booking_id).first()
-    if db_booking is None:
-        raise HTTPException(status_code=404, detail="Booking not found")
-
-    if db_booking.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Only the owner can cancel this booking")
-
-    if db_booking.booking_status == "cancelled":
-        raise HTTPException(status_code=400, detail="Booking is already cancelled")
-
-    db_booking.booking_status = "cancelled"
-
-    db_trip = db.query(TripDB).filter(TripDB.id == db_booking.trip_id).first()
-    if db_trip:
-        seats_to_return = db_booking.adults + db_booking.children
-        db_trip.remaining_places += seats_to_return
-        if db_trip.status == "full":
-            db_trip.status = "available"
-
-    try:
-        db.commit()
-        return {"message": "Booking cancelled successfully"}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
 # ========== PAYMENT ENDPOINTS ==========
 
 @app.post("/payments/", response_model=Payment)
 def create_payment(payment: PaymentCreate, db: Session = Depends(get_db)):
-    # Check if booking exists
     booking = db.query(BookingDB).filter(BookingDB.id == payment.booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     
-    # Create payment
     db_payment = PaymentDB(
         booking_id=payment.booking_id,
         card_last4=payment.card_last4,
@@ -345,20 +270,13 @@ def create_payment(payment: PaymentCreate, db: Session = Depends(get_db)):
     
     try:
         db.add(db_payment)
-        
-        # Update booking status to confirmed
         booking.booking_status = "confirmed"
-        
         db.commit()
         db.refresh(db_payment)
         return db_payment
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/payments/", response_model=List[Payment])
-def read_payments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(PaymentDB).offset(skip).limit(limit).all()
 
 # ========== ROOT ENDPOINT ==========
 
