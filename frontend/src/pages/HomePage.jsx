@@ -55,6 +55,7 @@ const HomePage = () => {
             {trips.map((trip) => (
               <TripCard
                 key={trip.id}
+                id={trip.id} // KLJUČNA DOPUNA
                 title={trip.title}
                 price={Number(trip.price)}
                 image={trip.image ?? TRIP_PLACEHOLDER_IMAGE}

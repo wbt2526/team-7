@@ -1,7 +1,11 @@
 import React from "react";
 import { Link } from 'react-router-dom';
-const TripCard = ({ title, price, image, remaining_places }) => {
+
+const TripCard = ({ id, title, price, image, remaining_places }) => {
   const isSoldOut = remaining_places === 0;
+
+  // Pravimo objekat koji ćemo poslati sledećoj stranici
+  const tripData = { id, title, price, image, remaining_places };
 
   return (
     <div className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
@@ -25,6 +29,8 @@ const TripCard = ({ title, price, image, remaining_places }) => {
 
         <Link
           to={`/trip/${title.toLowerCase().replace(/ /g, '-')}`}
+          // Šaljemo podatke u 'state' tako da TripDetailsPage zna o čemu se radi
+          state={{ trip: tripData }}
           className={`mt-4 block text-center w-full rounded py-2 font-medium transition-colors ${
             isSoldOut
               ? "pointer-events-none bg-gray-300 text-gray-500"

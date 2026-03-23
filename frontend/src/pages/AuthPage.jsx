@@ -13,6 +13,7 @@ const AuthPage = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    console.log("Pokušaj logovanja za:", email); // DEBUG
     setLoading(true);
 
     try {
@@ -24,9 +25,10 @@ const AuthPage = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json().catch(() => ({}));
+      console.log("Status odgovora:", response.status); // DEBUG
 
       if (response.ok) {
+        const data = await response.json();
         localStorage.setItem(
           "user",
           JSON.stringify({
@@ -35,19 +37,20 @@ const AuthPage = () => {
             role: data.role,
           })
         );
+        console.log("Korisnik sačuvan u localStorage"); // DEBUG
         alert("Login successful!");
-        navigate("/");
+        
+        // Koristimo window.location.href za "tvrdi" refresh. 
+        // To garantuje da će se Navbar 100% osvežiti.
+        window.location.href = "/"; 
       } else {
-        const message =
-          typeof data.detail === "string"
-            ? data.detail
-            : Array.isArray(data.detail)
-              ? data.detail.map((e) => e.msg || JSON.stringify(e)).join(", ")
-              : data.detail?.message || "Invalid credentials";
+        const data = await response.json().catch(() => ({}));
+        const message = data.detail || "Invalid email or password.";
         alert(message);
       }
-    } catch {
-      alert("Login failed. Please try again.");
+    } catch (err) {
+      console.error("Greška pri logovanju:", err); // DEBUG
+      alert("Cannot connect to server. Please check if your FastAPI is running.");
     } finally {
       setLoading(false);
     }
@@ -71,26 +74,18 @@ const AuthPage = () => {
         }),
       });
 
-      const data = await response.json().catch(() => ({}));
-
       if (response.ok) {
         alert("Registration successful! Please log in.");
         setIsLogin(true);
+        // Čistimo polja nakon registracije
         setFirstName("");
         setLastName("");
-        setEmail("");
-        setPassword("");
       } else {
-        const message =
-          typeof data.detail === "string"
-            ? data.detail
-            : Array.isArray(data.detail)
-              ? data.detail.map((e) => e.msg || JSON.stringify(e)).join(", ")
-              : data.detail?.message || "Registration failed.";
-        alert(message);
+        const data = await response.json().catch(() => ({}));
+        alert(data.detail || "Registration failed.");
       }
-    } catch {
-      alert("Registration failed. Please try again.");
+    } catch (err) {
+      alert("Registration failed. Server error.");
     } finally {
       setLoading(false);
     }
@@ -118,74 +113,49 @@ const AuthPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label
-                    htmlFor="firstName"
-                    className="mb-1 block text-sm font-medium text-gray-700"
-                  >
-                    First Name
-                  </label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">First Name</label>
                   <input
-                    id="firstName"
                     type="text"
-                    placeholder="Enter your first name"
+                    required
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-
                 <div>
-                  <label
-                    htmlFor="lastName"
-                    className="mb-1 block text-sm font-medium text-gray-700"
-                  >
-                    Last Name
-                  </label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Last Name</label>
                   <input
-                    id="lastName"
                     type="text"
-                    placeholder="Enter your last name"
+                    required
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-              </>
+              </div>
             )}
 
             <div>
-              <label
-                htmlFor="email"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Email Address
-              </label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Email Address</label>
               <input
-                id="email"
                 type="email"
-                placeholder="Enter your email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Password
-              </label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
               <input
-                id="password"
                 type="password"
-                placeholder="Enter your password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -202,8 +172,8 @@ const AuthPage = () => {
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
             <button
               type="button"
-              onClick={() => setIsLogin((prev) => !prev)}
-              className="font-medium text-blue-600 hover:text-blue-700"
+              onClick={() => setIsLogin(!isLogin)}
+              className="font-medium text-blue-600 hover:underline"
             >
               {isLogin ? "Sign up" : "Log in"}
             </button>
