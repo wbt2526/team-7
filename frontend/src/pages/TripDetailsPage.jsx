@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from 'react-router-dom';
 
 const TripDetailsPage = () => {
   const [adults, setAdults] = useState(1);
@@ -132,12 +133,17 @@ const TripDetailsPage = () => {
               </p>
             </div>
 
-            <button
-              type="button"
-              className="mt-6 w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
+            <Link
+              to="/checkout"
+              state={{ 
+                adults: safeAdults, 
+                children: safeChildren, 
+                totalPrice: totalPrice 
+              }}
+              className="mt-6 block text-center w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
             >
               Proceed to Booking
-            </button>
+            </Link>
           </div>
         </aside>
       </main>
