@@ -10,6 +10,11 @@ const HomePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // 1. Proveravamo da li je ulogovan admin
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+  const isAdmin = user?.role === "admin";
+
   useEffect(() => {
     const fetchTrips = async () => {
       try {
@@ -55,11 +60,13 @@ const HomePage = () => {
             {trips.map((trip) => (
               <TripCard
                 key={trip.id}
-                id={trip.id} // KLJUČNA DOPUNA
+                id={trip.id}
                 title={trip.title}
                 price={Number(trip.price)}
                 image={trip.image ?? TRIP_PLACEHOLDER_IMAGE}
                 remaining_places={trip.remaining_places}
+                // 2. Šaljemo informaciju kartici da li treba da pokaže Edit dugme
+                isAdmin={isAdmin} 
               />
             ))}
           </div>

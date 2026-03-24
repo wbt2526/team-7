@@ -48,10 +48,11 @@ class UserDB(Base):
     created_trips = relationship("TripDB", back_populates="creator")
 
 class TripDB(Base):
-    __tablename__ = "trips"
+    __tablename__ = "trips" 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     title = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)
+    image = Column(Text, nullable=True)
     date = Column(DateTime, nullable=False)
     duration = Column(Integer, nullable=False)
     price = Column(DECIMAL(10, 2), nullable=False)
