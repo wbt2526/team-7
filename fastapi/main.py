@@ -3,7 +3,9 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database import *
-from user import models as use_models, crud as user_crud, schemas as user_schemas
+
+from trip import crud as trip_crud, schemas as trip_schemas, models as trip_models
+from user import models as user_models, crud as user_crud, schemas as user_schemas
 # Authentication
 from auth import login_user, Token
 from fastapi.security import OAuth2PasswordRequestForm  
@@ -19,11 +21,11 @@ def create_user(user: user_schemas.UserCreate, db: Session = Depends(get_db)):
 
 @app.get("/users/", response_model=List[user_schemas.User])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(use_models.UserDB).offset(skip).limit(limit).all()
+    return db.query(user_models.UserDB).offset(skip).limit(limit).all()
 
 @app.get("/users/{user_id}", response_model=user_schemas.User)
 def read_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = db.query(use_models.UserDB).filter(use_models.UserDB.id == user_id).first()
+    db_user = db.query(user_models.UserDB).filter(user_models.UserDB.id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
@@ -40,8 +42,6 @@ def update_user(user_id: int, user: user_schemas.UserCreate, db: Session = Depen
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     return user_crud.delete_user(db, user_id)
 
-
-
 @app.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     return login_user(db, form_data.username, form_data.password)
@@ -49,6 +49,27 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @app.put("/login", response_model=Token)
 def refresh_login(token: str, db: Session = Depends(get_db)):
     return login_user(db, token, None)
+
+# # ========== TRIP ENDPOINTS ==========
+@app.post("/trips/")
+def create_trip(trip: trip_schemas.TripCreate, user_id: int, db: Session = Depends(get_db)):
+    return trip_crud.create_trip(db, trip, user_id)
+
+@app.get("/trips/", response_model=List[trip_schemas.Trip])
+def read_trips(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return trip_crud.get_trips(db, skip, limit)
+
+@app.get("/trips/{trip_id}", response_model=trip_schemas.Trip)
+def read_trip(trip_id: int, db: Session = Depends(get_db)):
+    return trip_crud.get_trip(db, trip_id)
+
+@app.put("/trips/{trip_id}", response_model=trip_schemas.Trip)
+def update_trip(trip_id: int, trip: trip_schemas.TripCreate, db):
+    return trip_crud.update_trip(db, trip_id, trip)
+
+@app.delete("/trips/{trip_id}", response_model=trip_schemas.Trip)
+def delete_trip(trip_id: int, db: Session = Depends(get_db)):
+    return trip_crud.delete_trip(db, trip_id)
 
 # # ========== ROOT ENDPOINT ==========
 
