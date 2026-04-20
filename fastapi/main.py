@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from database import *
 
 from booking import crud as booking_crud, schemas as booking_schemas, models as booking_models
+from payment import crud as payment_crud, schemas as payment_schemas, models as payment_models
 from trip import crud as trip_crud, schemas as trip_schemas, models as trip_models
 from user import models as user_models, crud as user_crud, schemas as user_schemas
 # Authentication
@@ -81,6 +82,16 @@ def book_trip(
     db: Session = Depends(get_db),
 ):
     return booking_crud.create_booking(db, trip_id, current_user.id, booking)
+
+
+@app.post("/bookings/{booking_id}/pay", response_model=payment_schemas.PaymentConfirmation)
+def pay_booking(
+    booking_id: int,
+    payment: payment_schemas.PaymentCreate,
+    current_user: user_schemas.User = Depends(is_valid_user),
+    db: Session = Depends(get_db),
+):
+    return payment_crud.create_payment(db, booking_id, current_user.id, payment)
 
 # # ========== ROOT ENDPOINT ==========
 

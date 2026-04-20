@@ -37,6 +37,7 @@ CREATE TABLE bookings (
     children INT NOT NULL,
     total_seats INT NOT NULL,
     total_price DECIMAL(10, 2) NOT NULL,
+    booking_status VARCHAR(20) NOT NULL DEFAULT 'pending',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_bookings_trip_id
         FOREIGN KEY (trip_id) REFERENCES trips(id),

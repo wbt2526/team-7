@@ -19,6 +19,7 @@ class BookingConfirmation(BaseModel):
     total_seats: int
     total_price: float
     remaining_places: int
+    booking_status: str
     message: str
     created_at: datetime
 

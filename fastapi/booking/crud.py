@@ -46,17 +46,13 @@ def create_booking(db: Session, trip_id: int, user_id: int, booking: BookingCrea
         children=booking.children,
         total_seats=total_seats,
         total_price=total_price,
+        booking_status="pending",
     )
-
-    db_trip.remaining_places -= total_seats
-    if db_trip.remaining_places == 0:
-        db_trip.status = TripStatus.full.value
 
     try:
         db.add(db_booking)
         db.commit()
         db.refresh(db_booking)
-        db.refresh(db_trip)
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
@@ -72,6 +68,7 @@ def create_booking(db: Session, trip_id: int, user_id: int, booking: BookingCrea
         "total_seats": db_booking.total_seats,
         "total_price": float(db_booking.total_price),
         "remaining_places": db_trip.remaining_places,
-        "message": "Booking confirmed",
+        "booking_status": db_booking.booking_status,
+        "message": "Booking created. Complete payment to reserve the seats",
         "created_at": db_booking.created_at,
     }
