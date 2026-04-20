@@ -1,0 +1,23 @@
+# Python virtual environment
+venv/
+env/
+.env
+
+.codex
+codex/
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# MacOS specific
+.DS_Store
+
+# FastAPI / Uvicorn logs
+*.log

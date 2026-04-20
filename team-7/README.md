@@ -3,7 +3,7 @@
 TEAM MEMBERS
 1- Omar Barra
 2- Ikram Kalkoul
-3- Alex 
+3- Aleksa Sovrlic
 
 ## Overview
 
@@ -11,7 +11,7 @@ A FastAPI-based backend for a travel booking system with:
 
 - Users, trips, bookings, payments
 - SQLAlchemy ORM models
-- MySQL (via `pymysql`) database
+- MySQL (via `MariaDB`) database
 - Authentication/password hashing using `bcrypt`
 - FastAPI endpoints (in `main.py`)
 
@@ -24,29 +24,23 @@ A FastAPI-based backend for a travel booking system with:
 ## Setup
 
 1. Clone repo and enter folder:
+2. 
 
 ```bash
 git clone git@github.com:wbt2526/team-7.git
-cd team-7
 ```
 
 2. Create/activate virtual environment:
 
 ```bash
-Windows
 python -m venv .venv
-.venv\Scripts\activate
-
-macOS / Linux
-python3 -m venv .venv
 source .venv/bin/activate
-
 ```
 
 3. Install dependencies:
 
 ```bash
-pip install -r fastapi/requirements.txt
+pip install -r requirements.txt
 ```
 
 If `requirements.txt` is missing, install at least:
@@ -58,26 +52,22 @@ pip install fastapi uvicorn sqlalchemy pymysql bcrypt
 4. Update DB URL in `fastapi/database.py` if needed:
 
 ```py
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://webapp:your_database_password@localhost/webapp"
+SQLALCHEMY_DATABASE_URL = "mysql+pymysql://webapp:pristiniAI12@localhost/webapp"
 ```
 
 5. Run migrations / create tables (if not automated):
 
 ```bash
-cd fastapi
-python -c "from database import Base, engine; Base.metadata.create_all(bind=engine)"
+python -c "from fastapi.database import Base, engine; Base.metadata.create_all(bind=engine)"
 ```
 
 6. Start dev server:
 
 ```bash
-../.venv/bin/fastapi dev main.py
+fastapi dev main.py
 ```
-
-The API will usually be available at `http://127.0.0.1:8000/docs`.
 
 ## Notes
 
 - If `bcrypt` install fails on macOS, ensure build tools are installed (e.g., OpenSSL via Homebrew) and retry.
 - Adjust database credentials and host as needed.
-- The app imports successfully without a database connection, but any endpoint that touches MySQL will fail until your local MySQL server is running and `SQLALCHEMY_DATABASE_URL` is correct.
