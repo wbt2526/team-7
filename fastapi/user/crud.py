@@ -57,8 +57,7 @@ def update_user(db: Session, user_id: int, user: UserCreate):
    
     db_user.first_name = user.first_name
     db_user.last_name = user.last_name
-    db_user.password = user.password
-    # db_user.password = pwd_context.hash(user.password)
+    db_user.password = pwd_context.hash(user.password)
     db_user.role = user.role
     
     try:

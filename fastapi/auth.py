@@ -3,7 +3,7 @@ from typing import Annotated
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer
-import jwt
+from jose import JWTError, ExpiredSignatureError, jwt
 from passlib.context import CryptContext
 from passlib.exc import UnknownHashError
 from pydantic import BaseModel
@@ -23,8 +23,8 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -65,9 +65,9 @@ def login_user(db: Session, email_or_token: str, password: str = None):
                 data={"email": user.email, "role": user.role, "id": user.id}
             )
             return Token(access_token=access_token, token_type="bearer")
-        except jwt.ExpiredSignatureError:
+        except ExpiredSignatureError:
             raise HTTPException(status_code=401, detail="Token expired")
-        except jwt.InvalidTokenError:
+        except JWTError:
             raise HTTPException(status_code=401, detail="Invalid token")
 
 
@@ -86,7 +86,7 @@ async def is_valid_user(
         user_info = payload
         if user_info.get('email') is None or user_info.get('role') is None:
             raise credentials_exception
-    except jwt.InvalidTokenError:
+    except JWTError:
         raise credentials_exception
     user = get_user_by_email(db, user_info.get('email'))
     if user is None:
@@ -97,4 +97,3 @@ async def is_admin_user( current_user: Annotated[User, Depends(is_valid_user)],)
     if current_user.role != 1:
         raise HTTPException(status_code=403, detail="Not enough permissions")
     return current_user
-
