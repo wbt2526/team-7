@@ -18,9 +18,11 @@ class TripDB(Base):
     duration = Column(Integer, nullable=False)
     image = Column(String(255), nullable=True)
     price = Column(DECIMAL(10, 2), nullable=False)
+    child_price = Column(DECIMAL(10, 2), nullable=False)
     total_places = Column(Integer, nullable=False)
     remaining_places = Column(Integer, nullable=False)
     status = Column(String(20), nullable=False, default="available")
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     creator = relationship("UserDB", back_populates="created_trips")
+    bookings = relationship("BookingDB", back_populates="trip")

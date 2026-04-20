@@ -65,6 +65,7 @@ CREATE TABLE `trips` (
   `date` datetime NOT NULL,
   `duration` int(11) NOT NULL,
   `price` decimal(10,2) NOT NULL,
+  `child_price` decimal(10,2) NOT NULL,
   `total_places` int(11) NOT NULL,
   `remaining_places` int(11) NOT NULL,
   `status` varchar(20) NOT NULL,
@@ -75,8 +76,8 @@ CREATE TABLE `trips` (
 -- Dumping data for table `trips`
 --
 
-INSERT INTO `trips` (`id`, `title`, `description`, `date`, `duration`, `price`, `total_places`, `remaining_places`, `status`, `created_by`) VALUES
-(1, 'Paris Adventure', 'Amazing trip to Paris', '2026-06-15 10:00:00', 7, 999.99, 20, 20, 'available', 2);
+INSERT INTO `trips` (`id`, `title`, `description`, `date`, `duration`, `price`, `child_price`, `total_places`, `remaining_places`, `status`, `created_by`) VALUES
+(1, 'Paris Adventure', 'Amazing trip to Paris', '2026-06-15 10:00:00', 7, 999.99, 499.99, 20, 20, 'available', 2);
 
 -- --------------------------------------------------------
 

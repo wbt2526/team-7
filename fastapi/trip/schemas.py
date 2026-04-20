@@ -10,6 +10,7 @@ class TripBase(BaseModel):
     duration: int
     image: Optional[str] = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1000"
     price: float
+    child_price: float
     total_places: int
     status: str = "available"
 
@@ -23,4 +24,3 @@ class Trip(TripBase):
 
     class Config:
         from_attributes = True
-

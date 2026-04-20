@@ -4,10 +4,11 @@ from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database import *
 
+from booking import crud as booking_crud, schemas as booking_schemas, models as booking_models
 from trip import crud as trip_crud, schemas as trip_schemas, models as trip_models
 from user import models as user_models, crud as user_crud, schemas as user_schemas
 # Authentication
-from auth import login_user, Token
+from auth import Token, is_valid_user, login_user
 from fastapi.security import OAuth2PasswordRequestForm  
 
 app = FastAPI()
@@ -70,6 +71,16 @@ def update_trip(trip_id: int, trip: trip_schemas.TripCreate, db):
 @app.delete("/trips/{trip_id}", response_model=trip_schemas.Trip)
 def delete_trip(trip_id: int, db: Session = Depends(get_db)):
     return trip_crud.delete_trip(db, trip_id)
+
+
+@app.post("/trips/{trip_id}/book", response_model=booking_schemas.BookingConfirmation)
+def book_trip(
+    trip_id: int,
+    booking: booking_schemas.BookingCreate,
+    current_user: user_schemas.User = Depends(is_valid_user),
+    db: Session = Depends(get_db),
+):
+    return booking_crud.create_booking(db, trip_id, current_user.id, booking)
 
 # # ========== ROOT ENDPOINT ==========
 

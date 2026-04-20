@@ -17,4 +17,5 @@ class UserDB(Base):
     password = Column(String(256), nullable=False)
     role = Column(SmallInteger, nullable=False, default=0)
 
+    bookings = relationship("BookingDB", back_populates="user")
     created_trips = relationship("TripDB", back_populates="creator")

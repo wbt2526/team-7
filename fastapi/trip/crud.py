@@ -38,6 +38,7 @@ def update_trip(db: Session, trip_id: int, trip: TripCreate):
     db_trip.duration = trip.duration
     db_trip.image = trip.image
     db_trip.price = trip.price
+    db_trip.child_price = trip.child_price
     db_trip.total_places = trip.total_places
     db_trip.remaining_places = trip.total_places
 
@@ -63,6 +64,7 @@ def create_trip(db: Session, trip: TripCreate, user_id: int):
         duration=trip.duration,
         image=trip.image,
         price=trip.price,
+        child_price=trip.child_price,
         total_places=trip.total_places,
         remaining_places=trip.total_places,
         created_by=user_id
