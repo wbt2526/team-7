@@ -66,6 +66,14 @@ python -c "from fastapi.database import Base, engine; Base.metadata.create_all(b
 fastapi dev main.py
 ```
 
+7. How to run the database on the mac:
+
+```bash
+https://www.phpmyadmin.net/downloads/
+
+php -S localhost:8081
+```
+
 ## Notes
 
 - If `bcrypt` install fails on macOS, ensure build tools are installed (e.g., OpenSSL via Homebrew) and retry.
