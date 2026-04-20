@@ -69,6 +69,6 @@ def create_booking(db: Session, trip_id: int, user_id: int, booking: BookingCrea
         "total_price": float(db_booking.total_price),
         "remaining_places": db_trip.remaining_places,
         "booking_status": db_booking.booking_status,
-        "message": "Booking created. Complete payment to reserve the seats",
+        "message": "Booking created. Complete payment to confirm the booking",
         "created_at": db_booking.created_at,
     }

@@ -50,7 +50,7 @@ CREATE TABLE payments (
     booking_id INT NOT NULL,
     card_last4 VARCHAR(4) NOT NULL,
     payment_status VARCHAR(20) NOT NULL,
-    payment_date DATETIME DEFAULT NULL,
+    payment_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_payments_booking_id
         FOREIGN KEY (booking_id) REFERENCES bookings(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

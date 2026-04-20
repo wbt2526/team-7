@@ -15,8 +15,8 @@ def create_payment(db: Session, booking_id: int, user_id: int, payment: PaymentC
     if db_booking.user_id != user_id:
         raise HTTPException(status_code=403, detail="You can only pay for your own bookings")
 
-    if db_booking.booking_status == "paid":
-        raise HTTPException(status_code=400, detail="Booking is already paid")
+    if db_booking.booking_status == "confirmed":
+        raise HTTPException(status_code=400, detail="Booking is already confirmed")
 
     db_trip = db.query(TripDB).filter(TripDB.id == db_booking.trip_id).first()
     if db_trip is None:
@@ -31,6 +31,24 @@ def create_payment(db: Session, booking_id: int, user_id: int, payment: PaymentC
     if db_trip.remaining_places < db_booking.total_seats:
         raise HTTPException(status_code=400, detail="Not enough remaining places")
 
+    # Deterministic MVP failure path for testing without a real payment gateway.
+    if payment.card_number.endswith("0002"):
+        db_payment = PaymentDB(
+            booking_id=booking_id,
+            card_last4=payment.card_number[-4:],
+            payment_status="failed",
+        )
+        try:
+            db.add(db_payment)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=402,
+            detail="Payment failed. Booking remains pending",
+        )
+
     db_payment = PaymentDB(
         booking_id=booking_id,
         card_last4=payment.card_number[-4:],
@@ -41,7 +59,7 @@ def create_payment(db: Session, booking_id: int, user_id: int, payment: PaymentC
     if db_trip.remaining_places == 0:
         db_trip.status = TripStatus.full.value
 
-    db_booking.booking_status = "paid"
+    db_booking.booking_status = "confirmed"
 
     try:
         db.add(db_payment)
@@ -57,7 +75,8 @@ def create_payment(db: Session, booking_id: int, user_id: int, payment: PaymentC
         "booking_id": db_booking.id,
         "payment_status": db_payment.payment_status,
         "payment_date": db_payment.payment_date,
+        "booking_status": db_booking.booking_status,
         "remaining_places": db_trip.remaining_places,
         "trip_status": db_trip.status,
-        "message": "Payment successful and trip availability updated",
+        "message": "Payment successful. Booking confirmed and trip availability updated",
     }
