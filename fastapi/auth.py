@@ -8,15 +8,11 @@ from passlib.context import CryptContext
 from passlib.exc import UnknownHashError
 from pydantic import BaseModel
 
+from config import ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_SECRET_KEY
 from database import get_db
 from user.models import UserDB
 from user.schemas import User
 from user.crud import get_user_by_email
-
-
-SECRET_KEY = "67c82b6b6b49e47fff1a8b51915ad0daf262c4cb4a69795af9ac90f03ecae10b"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # DTO for token
 class Token(BaseModel):
@@ -30,7 +26,7 @@ def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 # Authentication
 def login_user(db: Session, email_or_token: str, password: str = None):
@@ -54,7 +50,7 @@ def login_user(db: Session, email_or_token: str, password: str = None):
     else:
         # Refresh token
         try:
-            payload = jwt.decode(email_or_token, SECRET_KEY, algorithms=[ALGORITHM])
+            payload = jwt.decode(email_or_token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
             user_info = payload
             if user_info.get('email') is None:
                 raise HTTPException(status_code=401, detail="Invalid token")
@@ -82,7 +78,7 @@ async def is_valid_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         user_info = payload
         if user_info.get('email') is None or user_info.get('role') is None:
             raise credentials_exception

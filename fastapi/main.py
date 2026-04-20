@@ -9,7 +9,7 @@ from payment import crud as payment_crud, schemas as payment_schemas, models as 
 from trip import crud as trip_crud, schemas as trip_schemas, models as trip_models
 from user import models as user_models, crud as user_crud, schemas as user_schemas
 # Authentication
-from auth import Token, is_valid_user, login_user
+from auth import Token, is_admin_user, is_valid_user, login_user
 from fastapi.security import OAuth2PasswordRequestForm  
 
 app = FastAPI()
@@ -66,11 +66,30 @@ def read_trip(trip_id: int, db: Session = Depends(get_db)):
     return trip_crud.get_trip(db, trip_id)
 
 @app.put("/trips/{trip_id}", response_model=trip_schemas.Trip)
-def update_trip(trip_id: int, trip: trip_schemas.TripCreate, db):
+def update_trip(
+    trip_id: int,
+    trip: trip_schemas.TripCreate,
+    current_user: user_schemas.User = Depends(is_admin_user),
+    db: Session = Depends(get_db),
+):
     return trip_crud.update_trip(db, trip_id, trip)
 
+
+@app.patch("/trips/{trip_id}/status", response_model=trip_schemas.Trip)
+def update_trip_status(
+    trip_id: int,
+    status_update: trip_schemas.TripStatusUpdate,
+    current_user: user_schemas.User = Depends(is_admin_user),
+    db: Session = Depends(get_db),
+):
+    return trip_crud.update_trip_status(db, trip_id, status_update)
+
 @app.delete("/trips/{trip_id}", response_model=trip_schemas.Trip)
-def delete_trip(trip_id: int, db: Session = Depends(get_db)):
+def delete_trip(
+    trip_id: int,
+    current_user: user_schemas.User = Depends(is_admin_user),
+    db: Session = Depends(get_db),
+):
     return trip_crud.delete_trip(db, trip_id)
 
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class TripBase(BaseModel):
@@ -16,6 +16,19 @@ class TripBase(BaseModel):
 
 class TripCreate(TripBase):
     pass
+
+
+class TripStatusUpdate(BaseModel):
+    status: str
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, value: str) -> str:
+        normalized = value.lower()
+        allowed_statuses = {"available", "cancelled", "reported"}
+        if normalized not in allowed_statuses:
+            raise ValueError("Status must be one of: available, cancelled, reported")
+        return normalized
 
 class Trip(TripBase):
     created_by: int

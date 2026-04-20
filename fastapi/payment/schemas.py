@@ -8,6 +8,7 @@ class PaymentCreate(BaseModel):
     card_number: str = Field(min_length=12, max_length=19)
     expiry: str
     cvv: str = Field(min_length=3, max_length=4)
+    idempotency_key: str = Field(min_length=8, max_length=64)
 
     @field_validator("card_number")
     @classmethod
@@ -37,6 +38,14 @@ class PaymentCreate(BaseModel):
             raise ValueError("Expiry must use MM/YY or MM/YYYY format")
         return value
 
+    @field_validator("idempotency_key")
+    @classmethod
+    def validate_idempotency_key(cls, value: str) -> str:
+        normalized = value.strip()
+        if not re.fullmatch(r"[A-Za-z0-9._:-]{8,64}", normalized):
+            raise ValueError("Idempotency key contains invalid characters")
+        return normalized
+
     @model_validator(mode="after")
     def validate_expiry_not_past(self):
         month_str, year_str = self.expiry.split("/")
@@ -54,6 +63,7 @@ class PaymentCreate(BaseModel):
 class PaymentConfirmation(BaseModel):
     payment_id: int
     booking_id: int
+    provider_reference: str
     payment_status: str
     payment_date: datetime
     booking_status: str
