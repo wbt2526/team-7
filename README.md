@@ -61,11 +61,18 @@ pip install fastapi uvicorn sqlalchemy pymysql bcrypt
 SQLALCHEMY_DATABASE_URL = "mysql+pymysql://webapp:your_database_password@localhost/webapp"
 ```
 
-5. Run migrations / create tables (if not automated):
+5. Run Alembic migrations:
 
 ```bash
 cd fastapi
-python -c "from database import Base, engine; Base.metadata.create_all(bind=engine)"
+alembic upgrade head
+```
+
+If you already have an existing database that matches the current schema and you just want Alembic to start tracking it:
+
+```bash
+cd fastapi
+alembic stamp head
 ```
 
 6. Start dev server:
@@ -81,3 +88,4 @@ The API will usually be available at `http://127.0.0.1:8000/docs`.
 - If `bcrypt` install fails on macOS, ensure build tools are installed (e.g., OpenSSL via Homebrew) and retry.
 - Adjust database credentials and host as needed.
 - The app imports successfully without a database connection, but any endpoint that touches MySQL will fail until your local MySQL server is running and `SQLALCHEMY_DATABASE_URL` is correct.
+- Set `DATABASE_URL` and `JWT_SECRET_KEY` as environment variables for local development instead of relying on defaults.
