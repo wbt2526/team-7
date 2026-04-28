@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { apiRequest } from "../lib/api";
+import { getStoredUser } from "../lib/auth";
 
 const AdminPage = () => {
   const [bookings, setBookings] = useState([]);
   const [tripsMap, setTripsMap] = useState({});
   const [usersMap, setUsersMap] = useState({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchAllData();
@@ -12,50 +15,30 @@ const AdminPage = () => {
 
   const fetchAllData = async () => {
     try {
-      // 1. Povlačimo sve rezervacije, putovanja i korisnike istovremeno da spojimo podatke
+      const user = getStoredUser();
+      if (!user?.token || user.role !== "admin") {
+        throw new Error("Admin access required.");
+      }
+
       const [bRes, tRes, uRes] = await Promise.all([
-        fetch("http://127.0.0.1:8000/admin/bookings/"),
-        fetch("http://127.0.0.1:8000/trips/"),
-        fetch("http://127.0.0.1:8000/users/")
+        apiRequest("/admin/bookings", { token: user.token }),
+        apiRequest("/trips/"),
+        apiRequest("/users/")
       ]);
 
-      const bData = await bRes.json();
-      const tData = await tRes.json();
-      const uData = await uRes.json();
-
-      // 2. Pravimo "mape" (rečnike) za brzu pretragu naziva po ID-u
       const tMap = {};
-      tData.forEach(trip => tMap[trip.id] = trip.title);
+      tRes.forEach(trip => tMap[trip.id] = trip.title);
       
       const uMap = {};
-      uData.forEach(user => uMap[user.id] = `${user.first_name} ${user.last_name}`);
+      uRes.forEach(user => uMap[user.id] = `${user.first_name} ${user.last_name}`);
 
-      setBookings(bData);
+      setBookings(bRes);
       setTripsMap(tMap);
       setUsersMap(uMap);
     } catch (err) {
-      console.error("Greška pri učitavanju podataka:", err);
+      setError(err.message || "Failed to load admin data.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleStatusChange = async (bookingId, newStatus) => {
-    try {
-      const response = await fetch(`http://127.0.0.1:8000/bookings/${bookingId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (response.ok) {
-        // Osvežavamo tabelu odmah nakon promene
-        fetchAllData();
-      } else {
-        alert("Failed to update status.");
-      }
-    } catch (err) {
-      alert("Server error.");
     }
   };
 
@@ -71,6 +54,7 @@ const AdminPage = () => {
           </span>
         </div>
       </div>
+      {error && <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-700">{error}</div>}
       
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <table className="w-full text-left">
@@ -108,29 +92,8 @@ const AdminPage = () => {
                     {booking.booking_status}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  {/* Dugme Confirm se pojavljuje SAMO ako je rezervacija na čekanju (Pending) */}
-                  {booking.booking_status === 'pending' && (
-                    <button 
-                      onClick={() => handleStatusChange(booking.id, 'confirmed')}
-                      className="rounded-lg bg-green-600 px-4 py-2 text-xs font-bold text-white hover:bg-green-700 shadow-sm transition"
-                    >
-                      Confirm
-                    </button>
-                  )}
-
-                  {/* Dugme Cancel se pojavljuje ako putovanje nije već otkazano */}
-                  {booking.booking_status !== 'cancelled' ? (
-                    <button 
-                      onClick={() => handleStatusChange(booking.id, 'cancelled')}
-                      className="rounded-lg bg-white border border-red-200 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition"
-                    >
-                      Cancel
-                    </button>
-                  ) : (
-                    /* Ako je već Cancelled, ispisujemo samo info */
-                    <span className="text-xs text-gray-400 italic">No actions available</span>
-                  )}
+                <td className="px-6 py-4 text-right">
+                  <span className="text-xs text-gray-400 italic">Booking status is managed by payment flow</span>
                 </td>
               </tr>
             ))}

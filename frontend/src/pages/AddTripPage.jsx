@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiRequest } from "../lib/api";
+import { getStoredUser } from "../lib/auth";
 
 const AddTripPage = () => {
   const navigate = useNavigate();
@@ -11,9 +13,11 @@ const AddTripPage = () => {
     description: "Experience the magic of this destination with a thoughtfully curated getaway. Our journey includes iconic landmarks, hidden local culture, and professional guidance. Perfect for those seeking an authentic and unforgettable travel experience.",
     image: "",
     price: "",
+    child_price: "",
     date: "",
     duration: "",
     total_places: "",
+    status: "available",
   });
 
   // Univerzalna funkcija za ažuriranje bilo kog polja u formi
@@ -27,35 +31,24 @@ const AddTripPage = () => {
     setError(null);
 
     try {
-      // 1. Uzimamo ID trenutnog admina iz memorije (potreban backendu za proveru)
-      const userStr = localStorage.getItem("user");
-      if (!userStr) throw new Error("You must be logged in as admin.");
-      const adminId = JSON.parse(userStr).user_id;
+      const user = getStoredUser();
+      if (!user || user.role !== "admin") throw new Error("You must be logged in as admin.");
 
-      // 2. Pripremamo podatke (pretvaramo stringove u brojeve gde treba)
       const payload = {
         ...formData,
         price: parseFloat(formData.price),
+        child_price: parseFloat(formData.child_price),
         duration: parseInt(formData.duration),
         total_places: parseInt(formData.total_places),
-        // Status 'available' backend dodaje automatski
       };
 
-      // 3. Šaljemo POST zahtev. PAŽNJA: user_id šaljemo u URL-u!
-      const response = await fetch(`http://127.0.0.1:8000/trips/?user_id=${adminId}`, {
+      await apiRequest(`/trips/?user_id=${user.user_id}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || "Failed to create trip");
-      }
-
-      // 4. Uspeh! Obaveštavamo admina i vraćamo ga na Dashboard
       alert("Trip created successfully! 🚀");
-      navigate("/admin"); // Vraćamo se na listu rezervacija
+      navigate("/admin");
 
     } catch (err) {
       setError(err.message);
@@ -103,6 +96,11 @@ const AddTripPage = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Price per person ($)</label>
                 <input type="number" name="price" required min="0" step="0.01" value={formData.price} onChange={handleChange}
                   className="w-full rounded-lg border-gray-300 border px-4 py-2 focus:border-blue-500 focus:ring-blue-500" placeholder="999.99" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Child price ($)</label>
+                <input type="number" name="child_price" required min="0" step="0.01" value={formData.child_price} onChange={handleChange}
+                  className="w-full rounded-lg border-gray-300 border px-4 py-2 focus:border-blue-500 focus:ring-blue-500" placeholder="499.99" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>

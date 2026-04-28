@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { apiRequest } from "../lib/api";
+import { getStoredUser } from "../lib/auth";
 
 const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [cardholderName, setCardholderName] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvv, setCvv] = useState("");
 
-  // 1. ISPRAVKA: Izvlačimo trip objekat, adults i children
-  // location.state dobijamo iz TripDetailsPage (handleBooking funkcija)
   const { trip, adults = 1, children = 0 } = location.state || {};
 
-  // Ako neko slučajno dođe na /checkout bez state-a, vraćamo ga na home
   if (!trip) {
     return (
       <div className="py-20 text-center">
@@ -20,59 +23,45 @@ const CheckoutPage = () => {
     );
   }
 
-  // 2. ISPRAVKA: Računamo cenu ovde da ne bi bila $0
   const totalPassengers = Number(adults) + Number(children);
-  const calculatedTotalPrice = totalPassengers * Number(trip.price);
+  const calculatedTotalPrice =
+    Number(adults) * Number(trip.price) + Number(children) * Number(trip.child_price);
 
   const handlePayment = async (e) => {
     e.preventDefault();
     
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) {
+    const user = getStoredUser();
+    if (!user?.token) {
       alert("Please log in to complete your booking.");
       navigate("/auth");
       return;
     }
 
-    const user = JSON.parse(storedUser);
     setLoading(true);
 
     try {
-      // KORAK 1: Kreiramo rezervaciju (Booking)
-      const bookingResponse = await fetch(`http://127.0.0.1:8000/bookings/?user_id=${user.user_id}`, {
+      const bookingData = await apiRequest(`/trips/${trip.id}/book`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        token: user.token,
         body: JSON.stringify({
-          trip_id: trip.id, // Koristimo trip.id jer smo poslali ceo objekat
           adults: Number(adults),
-          children: Number(children)
+          children: Number(children),
         }),
       });
 
-      const bookingData = await bookingResponse.json();
-
-      if (!bookingResponse.ok) {
-        throw new Error(bookingData.detail || "Booking failed.");
-      }
-
-      // KORAK 2: Simuliramo plaćanje (da bi status u bazi postao 'confirmed')
-      // Uzimamo poslednje 4 cifre (za simulaciju, u stvarnosti bi išlo preko Stripe-a)
-      const paymentResponse = await fetch(`http://127.0.0.1:8000/payments/`, {
+      await apiRequest(`/bookings/${bookingData.booking_id}/pay`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        token: user.token,
         body: JSON.stringify({
-          booking_id: bookingData.id,
-          card_last4: "4242" // Fiksno za testiranje
+          card_number: cardNumber,
+          expiry,
+          cvv,
+          idempotency_key: `booking-${bookingData.booking_id}-${Date.now()}`,
         }),
       });
 
-      if (paymentResponse.ok) {
-        alert(`Success! Booking confirmed for ${trip.title}.`);
-        navigate("/bookings");
-      } else {
-        alert("Booking created but payment failed. Check your admin panel.");
-      }
-
+      alert(`Success! Booking confirmed for ${trip.title}.`);
+      navigate("/bookings");
     } catch (error) {
       alert(error.message || "Server error. Please try again.");
     } finally {
@@ -102,13 +91,13 @@ const CheckoutPage = () => {
             <h2 className="mb-5 text-xl font-semibold text-gray-900">Payment Details (Simulation)</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
-                <input type="text" placeholder="Cardholder Name" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
+                <input type="text" placeholder="Cardholder Name" required value={cardholderName} onChange={(e) => setCardholderName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
               </div>
               <div className="md:col-span-2">
-                <input type="text" placeholder="Card Number (16 digits)" minLength="16" maxLength="16" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
+                <input type="text" placeholder="Card Number (16 digits)" minLength="12" maxLength="19" required value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
               </div>
-              <input type="text" placeholder="MM/YY" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
-              <input type="password" placeholder="CVV" minLength="3" maxLength="4" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
+              <input type="text" placeholder="MM/YY" required value={expiry} onChange={(e) => setExpiry(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
+              <input type="password" placeholder="CVV" minLength="3" maxLength="4" required value={cvv} onChange={(e) => setCvv(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
             </div>
           </div>
         </div>
@@ -124,8 +113,12 @@ const CheckoutPage = () => {
                 <span className="font-semibold">{adults} Adults, {children} Children</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Price per person:</span>
+                <span>Adult price:</span>
                 <span className="font-semibold">${trip.price}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Child price:</span>
+                <span className="font-semibold">${trip.child_price}</span>
               </div>
             </div>
             

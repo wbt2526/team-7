@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { apiRequest } from "../lib/api";
+import { loginAndStoreUser } from "../lib/auth";
 
 const AuthPage = () => {
   const location = useLocation();
@@ -13,44 +15,14 @@ const AuthPage = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    console.log("Pokušaj logovanja za:", email); // DEBUG
     setLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/login/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      console.log("Status odgovora:", response.status); // DEBUG
-
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            user_id: data.user_id,
-            email: data.email,
-            role: data.role,
-          })
-        );
-        console.log("Korisnik sačuvan u localStorage"); // DEBUG
-        alert("Login successful!");
-        
-        // Koristimo window.location.href za "tvrdi" refresh. 
-        // To garantuje da će se Navbar 100% osvežiti.
-        window.location.href = "/"; 
-      } else {
-        const data = await response.json().catch(() => ({}));
-        const message = data.detail || "Invalid email or password.";
-        alert(message);
-      }
+      await loginAndStoreUser(email, password);
+      alert("Login successful!");
+      window.location.href = "/";
     } catch (err) {
-      console.error("Greška pri logovanju:", err); // DEBUG
-      alert("Cannot connect to server. Please check if your FastAPI is running.");
+      alert(err.message || "Cannot connect to server. Please check if FastAPI is running.");
     } finally {
       setLoading(false);
     }
@@ -61,31 +33,22 @@ const AuthPage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/users/", {
+      await apiRequest("/user/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           first_name: firstName,
           last_name: lastName,
           email,
           password,
+          role: 0,
         }),
       });
-
-      if (response.ok) {
-        alert("Registration successful! Please log in.");
-        setIsLogin(true);
-        // Čistimo polja nakon registracije
-        setFirstName("");
-        setLastName("");
-      } else {
-        const data = await response.json().catch(() => ({}));
-        alert(data.detail || "Registration failed.");
-      }
+      alert("Registration successful! Please log in.");
+      setIsLogin(true);
+      setFirstName("");
+      setLastName("");
     } catch (err) {
-      alert("Registration failed. Server error.");
+      alert(err.message || "Registration failed. Server error.");
     } finally {
       setLoading(false);
     }

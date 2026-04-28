@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { apiRequest } from "../lib/api";
+import { getStoredUser } from "../lib/auth";
 
 const TRIP_PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80";
 
@@ -13,34 +15,23 @@ const MyBookingsPage = () => {
     const fetchData = async () => {
       try {
         const userStr = localStorage.getItem("user");
-        if (!userStr) {
+        const user = getStoredUser();
+        if (!user?.token) {
           setError("Please log in to view your bookings.");
           setIsLoading(false);
           return;
         }
 
-        const user = JSON.parse(userStr);
-        const userId = user.user_id;
-
-        // 1. Dohvati sve rezervacije za ulogovanog korisnika
-        const bResponse = await fetch(`http://127.0.0.1:8000/bookings/?user_id=${userId}`);
-        if (!bResponse.ok) throw new Error("Failed to load bookings.");
-        const bookingsData = await bResponse.json();
+        const bookingsData = await apiRequest("/bookings/me", { token: user.token });
         setBookings(bookingsData);
 
-        // 2. Za svaku rezervaciju, dohvatiti detalje putovanja (naslov, slika...)
         const uniqueTripIds = [...new Set(bookingsData.map(b => b.trip_id))];
         const tripDetails = {};
+        const allTrips = await apiRequest("/trips/");
 
         await Promise.all(uniqueTripIds.map(async (id) => {
-          try {
-            const tResponse = await fetch(`http://127.0.0.1:8000/trips/`); // Uzimamo sva putovanja da nađemo pravo
-            const allTrips = await tResponse.json();
-            const foundTrip = allTrips.find(t => t.id === id);
-            if (foundTrip) tripDetails[id] = foundTrip;
-          } catch (e) {
-            console.error("Could not fetch details for trip", id);
-          }
+          const foundTrip = allTrips.find(t => t.id === id);
+          if (foundTrip) tripDetails[id] = foundTrip;
         }));
 
         setTripsMap(tripDetails);

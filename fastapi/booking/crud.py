@@ -72,3 +72,16 @@ def create_booking(db: Session, trip_id: int, user_id: int, booking: BookingCrea
         "message": "Booking created. Complete payment to confirm the booking",
         "created_at": db_booking.created_at,
     }
+
+
+def get_user_bookings(db: Session, user_id: int):
+    return (
+        db.query(BookingDB)
+        .filter(BookingDB.user_id == user_id)
+        .order_by(BookingDB.created_at.desc())
+        .all()
+    )
+
+
+def get_all_bookings(db: Session):
+    return db.query(BookingDB).order_by(BookingDB.created_at.desc()).all()

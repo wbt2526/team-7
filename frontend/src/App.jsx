@@ -10,6 +10,10 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import AddTripPage from './pages/AddTripPage';
 import EditTripPage from './pages/EditTripPage'; // Import nove stranice
+import DestinationsPage from './pages/DestinationsPage';
+import ToursPage from './pages/ToursPage';
+import DealsPage from './pages/DealsPage';
+import AboutPage from './pages/AboutPage';
 
 function App() {
   // Izvlačimo korisnika iz localStorage da bismo znali njegovu ulogu (role)
@@ -23,6 +27,10 @@ function App() {
         
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/destinations" element={<DestinationsPage />} />
+          <Route path="/tours" element={<ToursPage />} />
+          <Route path="/deals" element={<DealsPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/trip/:id" element={<TripDetailsPage />} />
           <Route path="/bookings" element={<MyBookingsPage />} />

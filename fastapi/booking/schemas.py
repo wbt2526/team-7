@@ -25,3 +25,18 @@ class BookingConfirmation(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class Booking(BaseModel):
+    id: int
+    trip_id: int
+    user_id: int
+    adults: int
+    children: int
+    total_seats: int
+    total_price: float
+    booking_status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { apiRequest } from "../lib/api";
+import { getStoredUser } from "../lib/auth";
 
 const EditTripPage = () => {
   const { id } = useParams();
@@ -14,28 +16,27 @@ const EditTripPage = () => {
     description: "", 
     image: "", 
     price: "", 
+    child_price: "",
     date: "", 
     duration: "", 
-    total_places: ""
+    total_places: "",
+    status: "available",
   });
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/trips/${id}`)
-      .then(res => {
-        if (!res.ok) throw new Error("Trip not found");
-        return res.json();
-      })
+    apiRequest(`/trips/${id}`)
       .then(data => {
         const formattedDate = data.date ? data.date.split('T')[0] : "";
-        // Koristimo || "" da osiguramo da nijedno polje ne ostane undefined
         setFormData({
           title: data.title || "",
           description: data.description || "",
           image: data.image || "",
           price: data.price || "",
+          child_price: data.child_price || "",
           date: formattedDate,
           duration: data.duration || "",
-          total_places: data.total_places || ""
+          total_places: data.total_places || "",
+          status: data.status || "available",
         });
       })
       .catch(err => console.error("Error loading trip:", err));
@@ -54,26 +55,27 @@ const EditTripPage = () => {
     setLoading(true);
     
     try {
-      const userStr = localStorage.getItem("user");
-      const adminId = JSON.parse(userStr).user_id;
+      const user = getStoredUser();
+      if (!user?.token || user.role !== "admin") {
+        throw new Error("Admin access required.");
+      }
 
-      const response = await fetch(`http://127.0.0.1:8000/trips/${id}?user_id=${adminId}`, {
+      await apiRequest(`/trips/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        token: user.token,
         body: JSON.stringify({
           ...formData,
           price: parseFloat(formData.price),
+          child_price: parseFloat(formData.child_price),
           duration: parseInt(formData.duration),
           total_places: parseInt(formData.total_places),
         }),
       });
 
-      if (response.ok) {
-        alert("Trip updated! 🚀");
-        navigate("/"); 
-      }
+      alert("Trip updated! 🚀");
+      navigate("/");
     } catch (err) {
-      alert("Error saving changes. Is the server running?");
+      alert(err.message || "Error saving changes. Is the server running?");
     } finally {
       setLoading(false);
     }
@@ -115,8 +117,16 @@ const EditTripPage = () => {
             <input type="number" name="price" className="w-full border border-gray-300 p-2 rounded-lg" value={formData.price} onChange={handleChange} required />
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Child Price ($)</label>
+            <input type="number" name="child_price" className="w-full border border-gray-300 p-2 rounded-lg" value={formData.child_price} onChange={handleChange} required />
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Days)</label>
             <input type="number" name="duration" className="w-full border border-gray-300 p-2 rounded-lg" value={formData.duration} onChange={handleChange} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Total Seats</label>
+            <input type="number" name="total_places" className="w-full border border-gray-300 p-2 rounded-lg" value={formData.total_places} onChange={handleChange} required />
           </div>
         </div>
 

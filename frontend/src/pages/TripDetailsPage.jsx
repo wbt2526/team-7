@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiRequest } from "../lib/api";
+import { getStoredUser } from "../lib/auth";
 
 const TripDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // NOVO: Stanja za čuvanje broja putnika
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
+  const user = getStoredUser();
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/trips/${id}`)
-      .then((res) => res.json())
+    apiRequest(`/trips/${id}`)
       .then((data) => {
         setTrip(data);
         setLoading(false);
@@ -24,13 +24,21 @@ const TripDetailsPage = () => {
   if (loading) return <div className="py-20 text-center">Loading details...</div>;
   if (!trip) return <div className="py-20 text-center">Trip not found.</div>;
 
-  // Funkcija koja se poziva na klik dugmeta
+  const totalPassengers = Number(adults) + Number(children);
+  const totalPrice = (Number(adults) * Number(trip.price)) + (Number(children) * Number(trip.child_price));
+  const bookingBlocked = trip.status !== "available" || trip.remaining_places <= 0;
+
   const handleBooking = () => {
+    if (!user) {
+      navigate("/auth", { state: { defaultIsLogin: true } });
+      return;
+    }
+
     navigate("/checkout", { 
       state: { 
         trip, 
-        adults: parseInt(adults), 
-        children: parseInt(children) 
+        adults: parseInt(adults, 10), 
+        children: parseInt(children, 10) 
       } 
     });
   };
@@ -71,10 +79,10 @@ const TripDetailsPage = () => {
         <div className="rounded-xl border p-6 shadow-lg bg-gray-50 h-fit sticky top-24">
           <div className="mb-6">
             <span className="text-3xl font-bold text-blue-600">${trip.price}</span>
-            <span className="text-gray-500"> / person</span>
+            <span className="text-gray-500"> / adult</span>
+            <p className="mt-1 text-sm text-gray-500">Children from ${Number(trip.child_price).toFixed(2)}</p>
           </div>
 
-          {/* SEKCIJA ZA BIRANJE PUTNIKA */}
           <div className="space-y-4 mb-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -85,7 +93,7 @@ const TripDetailsPage = () => {
                 min="1"
                 max={trip.remaining_places}
                 value={adults}
-                onChange={(e) => setAdults(e.target.value)}
+                onChange={(e) => setAdults(Math.max(1, Number(e.target.value)))}
                 className="w-full rounded-lg border border-gray-300 p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
@@ -97,23 +105,29 @@ const TripDetailsPage = () => {
               <input
                 type="number"
                 min="0"
-                max={trip.remaining_places - adults}
+                max={Math.max(0, trip.remaining_places - Number(adults))}
                 value={children}
-                onChange={(e) => setChildren(e.target.value)}
+                onChange={(e) => setChildren(Math.max(0, Number(e.target.value)))}
                 className="w-full rounded-lg border border-gray-300 p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
           </div>
           
-          <p className="mb-6 text-sm font-medium text-green-600">
-            ✅ {trip.remaining_places} seats available
-          </p>
+          <div className="mb-6 space-y-2">
+            <p className={`text-sm font-medium ${bookingBlocked ? "text-red-600" : "text-green-600"}`}>
+              {bookingBlocked ? `Status: ${trip.status}` : `✅ ${trip.remaining_places} seats available`}
+            </p>
+            <p className="text-sm text-gray-600">
+              Total for {totalPassengers} travelers: <span className="font-bold text-gray-900">${totalPrice.toFixed(2)}</span>
+            </p>
+          </div>
 
           <button 
             onClick={handleBooking}
-            className="w-full rounded-lg bg-blue-600 py-4 font-bold text-white hover:bg-blue-700 transition shadow-md"
+            disabled={bookingBlocked}
+            className="w-full rounded-lg bg-blue-600 py-4 font-bold text-white hover:bg-blue-700 transition shadow-md disabled:cursor-not-allowed disabled:bg-gray-400"
           >
-            Book This Trip
+            {bookingBlocked ? "Booking Unavailable" : "Book This Trip"}
           </button>
         </div>
       </div>

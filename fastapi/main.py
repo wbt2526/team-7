@@ -1,6 +1,7 @@
 from pprint import pp
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import *
 
@@ -13,6 +14,17 @@ from auth import Token, is_admin_user, is_valid_user, login_user
 from fastapi.security import OAuth2PasswordRequestForm  
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ========== PYDANTIC MODELS ==========
 
@@ -101,6 +113,22 @@ def book_trip(
     db: Session = Depends(get_db),
 ):
     return booking_crud.create_booking(db, trip_id, current_user.id, booking)
+
+
+@app.get("/bookings/me", response_model=List[booking_schemas.Booking])
+def read_my_bookings(
+    current_user: user_schemas.User = Depends(is_valid_user),
+    db: Session = Depends(get_db),
+):
+    return booking_crud.get_user_bookings(db, current_user.id)
+
+
+@app.get("/admin/bookings", response_model=List[booking_schemas.Booking])
+def read_all_bookings(
+    current_user: user_schemas.User = Depends(is_admin_user),
+    db: Session = Depends(get_db),
+):
+    return booking_crud.get_all_bookings(db)
 
 
 @app.post("/bookings/{booking_id}/pay", response_model=payment_schemas.PaymentConfirmation)
