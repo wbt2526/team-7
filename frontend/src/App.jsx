@@ -22,7 +22,7 @@ function App() {
 
   return (
     <Router>
-      <div className="flex min-h-screen flex-col bg-gray-50 pt-[72px]">
+      <div className="flex min-h-screen flex-col bg-gray-50 pt-[60px]">
         <Navbar />
         
         <Routes>
@@ -36,19 +36,16 @@ function App() {
           <Route path="/bookings" element={<MyBookingsPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
 
-          {/* ADMIN RUTA - DASHBOARD */}
           <Route 
             path="/admin" 
             element={user?.role === 'admin' ? <AdminPage /> : <Navigate to="/" replace />} 
           />
 
-          {/* ADMIN RUTA - DODAVANJE PUTOVANJA */}
           <Route 
             path="/add-trip" 
             element={user?.role === 'admin' ? <AddTripPage /> : <Navigate to="/" replace />} 
           />
 
-          {/* ADMIN RUTA - IZMENA PUTOVANJA */}
           <Route 
             path="/edit-trip/:id" 
             element={user?.role === 'admin' ? <EditTripPage /> : <Navigate to="/" replace />} 
