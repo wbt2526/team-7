@@ -1,6 +1,7 @@
 # Python virtual environment
 venv/
 env/
+.venv/
 .env
 
 .codex
@@ -21,3 +22,7 @@ __pycache__/
 
 # FastAPI / Uvicorn logs
 *.log
+
+# Node dependencies and frontend build output
+node_modules/
+dist/

@@ -1,5 +1,4 @@
-from pprint import pp
-from typing import List, Optional
+from typing import List
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session

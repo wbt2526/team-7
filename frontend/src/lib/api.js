@@ -52,14 +52,24 @@ function formatDetail(detail) {
 
 export async function apiRequest(path, options = {}) {
   const { token, headers, ...rest } = options;
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...rest,
-    headers: buildHeaders({
-      token,
-      contentType: headers?.["Content-Type"] ?? "application/json",
-      extraHeaders: headers,
-    }),
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...rest,
+      headers: buildHeaders({
+        token,
+        contentType: headers?.["Content-Type"] ?? "application/json",
+        extraHeaders: headers,
+      }),
+    });
+  } catch (requestError) {
+    const error = new Error(
+      "The backend server could not be reached. Please confirm it is running and try again."
+    );
+    error.cause = requestError;
+    throw error;
+  }
 
   const contentType = response.headers.get("content-type") ?? "";
   const data = contentType.includes("application/json")
