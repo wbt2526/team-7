@@ -56,6 +56,9 @@ def create_payment(db: Session, booking_id: int, user_id: int, payment: PaymentC
         if db_booking.booking_status == "confirmed":
             raise HTTPException(status_code=400, detail="Booking is already confirmed")
 
+        if db_booking.booking_status == "cancelled":
+            raise HTTPException(status_code=400, detail="Cancelled bookings cannot be paid")
+
         db_trip = (
             db.query(TripDB)
             .filter(TripDB.id == db_booking.trip_id)
@@ -74,7 +77,7 @@ def create_payment(db: Session, booking_id: int, user_id: int, payment: PaymentC
         if db_trip.remaining_places < db_booking.total_seats:
             raise HTTPException(status_code=400, detail="Not enough remaining places")
 
-        payment_outcome = _simulate_gateway_charge(payment.card_number)
+        payment_outcome = _simulate_gateway_charge()
         db_payment = PaymentDB(
             booking_id=booking_id,
             idempotency_key=payment.idempotency_key,
@@ -121,14 +124,8 @@ def create_payment(db: Session, booking_id: int, user_id: int, payment: PaymentC
     }
 
 
-def _simulate_gateway_charge(card_number: str) -> dict:
+def _simulate_gateway_charge() -> dict:
     provider_reference = f"pay_{uuid4().hex[:20]}"
-
-    if card_number.endswith("0002"):
-        return {
-            "status": "failed",
-            "provider_reference": provider_reference,
-        }
 
     return {
         "status": "succeeded",

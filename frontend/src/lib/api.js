@@ -14,6 +14,42 @@ function buildHeaders({ token, contentType = "application/json", extraHeaders = 
   return headers;
 }
 
+function formatDetail(detail) {
+  if (!detail) {
+    return "Request failed";
+  }
+
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.msg) {
+          const location = Array.isArray(item.loc)
+            ? item.loc.filter((part) => part !== "body").join(".")
+            : "";
+          return location ? `${location}: ${item.msg}` : item.msg;
+        }
+        return formatDetail(item);
+      })
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  if (typeof detail === "object") {
+    if (detail.message) return formatDetail(detail.message);
+    if (detail.error) return formatDetail(detail.error);
+    return Object.entries(detail)
+      .map(([key, value]) => `${key}: ${formatDetail(value)}`)
+      .join(" ");
+  }
+
+  return String(detail);
+}
+
 export async function apiRequest(path, options = {}) {
   const { token, headers, ...rest } = options;
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -31,8 +67,11 @@ export async function apiRequest(path, options = {}) {
     : await response.text();
 
   if (!response.ok) {
-    const detail = typeof data === "object" && data?.detail ? data.detail : "Request failed";
-    throw new Error(detail);
+    const detail = typeof data === "object" && data?.detail ? data.detail : data;
+    const error = new Error(formatDetail(detail));
+    error.status = response.status;
+    error.data = data;
+    throw error;
   }
 
   return data;

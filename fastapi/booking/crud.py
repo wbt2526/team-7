@@ -83,5 +83,32 @@ def get_user_bookings(db: Session, user_id: int):
     )
 
 
+def cancel_pending_booking(db: Session, booking_id: int, user_id: int):
+    db_booking = db.query(BookingDB).filter(BookingDB.id == booking_id).first()
+    if db_booking is None:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if db_booking.user_id != user_id:
+        raise HTTPException(status_code=403, detail="You can only cancel your own bookings")
+
+    if db_booking.booking_status == "confirmed":
+        raise HTTPException(status_code=400, detail="Confirmed bookings cannot be cancelled here")
+
+    if db_booking.booking_status == "cancelled":
+        raise HTTPException(status_code=400, detail="Booking is already cancelled")
+
+    if db_booking.booking_status != "pending":
+        raise HTTPException(status_code=400, detail="Only pending bookings can be cancelled")
+
+    try:
+        db_booking.booking_status = "cancelled"
+        db.commit()
+        db.refresh(db_booking)
+        return db_booking
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 def get_all_bookings(db: Session):
     return db.query(BookingDB).order_by(BookingDB.created_at.desc()).all()

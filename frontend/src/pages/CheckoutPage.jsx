@@ -3,6 +3,58 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../lib/api";
 import { getStoredUser } from "../lib/auth";
 
+function normalizeCardNumber(value) {
+  return value.replace(/\s+/g, "");
+}
+
+function formatCardNumber(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 19);
+  return digits.replace(/(.{4})/g, "$1 ").trim();
+}
+
+function formatExpiry(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+}
+
+function formatCvv(value) {
+  return value.replace(/\D/g, "").slice(0, 4);
+}
+
+function validatePaymentFields({ cardNumber, expiry, cvv }) {
+  const normalizedCard = normalizeCardNumber(cardNumber);
+
+  if (!/^\d+$/.test(normalizedCard)) {
+    return "Card number must contain digits only.";
+  }
+
+  if (normalizedCard.length < 13 || normalizedCard.length > 19) {
+    return "Card number must contain 13 to 19 digits.";
+  }
+
+  if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) {
+    return "Expiry date must be in MM/YY format.";
+  }
+
+  const [monthText, yearText] = expiry.split("/");
+  const expiryYear = 2000 + Number(yearText);
+  const expiryMonth = Number(monthText);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  if (expiryYear < currentYear || (expiryYear === currentYear && expiryMonth < currentMonth)) {
+    return "Card expiry date is in the past.";
+  }
+
+  if (!/^\d{3,4}$/.test(cvv)) {
+    return "Security code must contain 3 or 4 digits.";
+  }
+
+  return null;
+}
+
 const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -11,6 +63,10 @@ const CheckoutPage = () => {
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvv, setCvv] = useState("");
+  const [pendingBookingId, setPendingBookingId] = useState(null);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [success, setSuccess] = useState("");
 
   const { trip, adults = 1, children = 0 } = location.state || {};
 
@@ -29,41 +85,69 @@ const CheckoutPage = () => {
 
   const handlePayment = async (e) => {
     e.preventDefault();
-    
+    setError("");
+    setNotice("");
+    setSuccess("");
+
     const user = getStoredUser();
     if (!user?.token) {
-      alert("Please log in to complete your booking.");
-      navigate("/auth");
+      setError("Your session expired. Please log in again to continue booking.");
+      return;
+    }
+
+    const validationError = validatePaymentFields({ cardNumber, expiry, cvv });
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setLoading(true);
 
-    try {
-      const bookingData = await apiRequest(`/trips/${trip.id}/book`, {
-        method: "POST",
-        token: user.token,
-        body: JSON.stringify({
-          adults: Number(adults),
-          children: Number(children),
-        }),
-      });
+    let activeBookingId = pendingBookingId;
 
-      await apiRequest(`/bookings/${bookingData.booking_id}/pay`, {
+    try {
+      let bookingId = activeBookingId;
+
+      if (!bookingId) {
+        const bookingData = await apiRequest(`/trips/${trip.id}/book`, {
+          method: "POST",
+          token: user.token,
+          body: JSON.stringify({
+            adults: Number(adults),
+            children: Number(children),
+          }),
+        });
+        bookingId = bookingData.booking_id;
+        activeBookingId = bookingId;
+        setPendingBookingId(bookingId);
+      }
+
+      await apiRequest(`/bookings/${bookingId}/pay`, {
         method: "POST",
         token: user.token,
         body: JSON.stringify({
-          card_number: cardNumber,
+          card_number: normalizeCardNumber(cardNumber),
           expiry,
           cvv,
-          idempotency_key: `booking-${bookingData.booking_id}-${Date.now()}`,
+          idempotency_key: `booking-${bookingId}-${Date.now()}`,
         }),
       });
 
-      alert(`Success! Booking confirmed for ${trip.title}.`);
-      navigate("/bookings");
-    } catch (error) {
-      alert(error.message || "Server error. Please try again.");
+      setSuccess(`Payment successful. Booking #${bookingId} is confirmed.`);
+      window.setTimeout(() => navigate("/bookings"), 900);
+    } catch (paymentError) {
+      if (paymentError.status === 401) {
+        setError("Your session expired. Please log in again to continue booking.");
+        setNotice("");
+        return;
+      }
+
+      const createdPendingMessage =
+        activeBookingId || paymentError.status === 402
+          ? "A pending booking is saved. You can retry payment here or cancel it from My Bookings."
+          : "";
+      setError(paymentError.message || "Server error. Please try again.");
+      setNotice(createdPendingMessage);
     } finally {
       setLoading(false);
     }
@@ -75,34 +159,64 @@ const CheckoutPage = () => {
         <div className="lg:col-span-2">
           <h1 className="mb-8 text-3xl font-bold text-gray-900">Complete Your Booking</h1>
 
-          {/* Passenger Info */}
-          <div className="mb-6 rounded-xl bg-white p-6 shadow-sm border border-gray-100">
+          <div className="mb-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
             <h2 className="mb-5 text-xl font-semibold text-gray-900">Lead Passenger Information</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <input type="text" placeholder="First Name" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
-              <input type="text" placeholder="Last Name" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
-              <input type="email" placeholder="Email" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
-              <input type="tel" placeholder="Phone" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
+              <input type="text" placeholder="First Name" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
+              <input type="text" placeholder="Last Name" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
+              <input type="email" placeholder="Email" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
+              <input type="tel" placeholder="Phone" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
             </div>
           </div>
 
-          {/* Fake Payment Info */}
-          <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-            <h2 className="mb-5 text-xl font-semibold text-gray-900">Payment Details (Simulation)</h2>
+          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Payment Details</h2>
+                <p className="mt-1 text-sm text-gray-500">Payment is simulated for this academic demo.</p>
+              </div>
+              {pendingBookingId && (
+                <span className="rounded-full bg-yellow-50 px-3 py-1 text-xs font-bold text-yellow-700">
+                  Pending booking #{pendingBookingId}
+                </span>
+              )}
+            </div>
+
+            <div className="mb-5 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
+              No real payment will be processed. Use non-real card details only.
+            </div>
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
-                <input type="text" placeholder="Cardholder Name" required value={cardholderName} onChange={(e) => setCardholderName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
+                <input type="text" placeholder="Cardholder Name" required value={cardholderName} onChange={(e) => setCardholderName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
               </div>
               <div className="md:col-span-2">
-                <input type="text" placeholder="Card Number (16 digits)" minLength="12" maxLength="19" required value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
+                <input type="text" placeholder="Card Number" inputMode="numeric" autoComplete="cc-number" required value={cardNumber} onChange={(e) => setCardNumber(formatCardNumber(e.target.value))} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
               </div>
-              <input type="text" placeholder="MM/YY" required value={expiry} onChange={(e) => setExpiry(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
-              <input type="password" placeholder="CVV" minLength="3" maxLength="4" required value={cvv} onChange={(e) => setCvv(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 transition-all" />
+              <input type="text" placeholder="MM/YY" inputMode="numeric" autoComplete="cc-exp" required value={expiry} onChange={(e) => setExpiry(formatExpiry(e.target.value))} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
+              <input type="password" placeholder="CVV" inputMode="numeric" autoComplete="cc-csc" required value={cvv} onChange={(e) => setCvv(formatCvv(e.target.value))} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
             </div>
+
+            {error && (
+              <div className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+                {error}
+              </div>
+            )}
+
+            {notice && (
+              <div className="mt-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                {notice}
+              </div>
+            )}
+
+            {success && (
+              <div className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-700">
+                {success}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Summary Sidebar */}
         <aside className="lg:col-span-1">
           <div className="sticky top-24 rounded-xl border border-gray-100 bg-white p-6 shadow-lg">
             <h2 className="mb-4 border-b pb-4 text-xl font-bold text-gray-900">Booking Summary</h2>
@@ -129,14 +243,14 @@ const CheckoutPage = () => {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || Boolean(success)}
               className={`mt-8 w-full rounded-lg py-4 font-bold text-white shadow-md transition-all ${
-                loading ? "bg-gray-400 cursor-not-allowed scale-95" : "bg-blue-600 hover:bg-blue-700 active:scale-95"
+                loading || success ? "cursor-not-allowed bg-gray-400 opacity-80" : "bg-blue-600 hover:bg-blue-700 active:scale-95"
               }`}
             >
-              {loading ? "Processing..." : "Confirm & Pay Now"}
+              {loading ? "Processing..." : pendingBookingId ? "Retry Payment" : "Confirm & Pay Now"}
             </button>
-            <p className="mt-4 text-center text-xs text-gray-400">Secure 256-bit SSL encrypted payment</p>
+            <p className="mt-4 text-center text-xs text-gray-400">Only the last four digits are stored for the simulated payment record.</p>
           </div>
         </aside>
       </form>

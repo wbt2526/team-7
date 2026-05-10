@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class PaymentCreate(BaseModel):
-    card_number: str = Field(min_length=12, max_length=19)
+    card_number: str = Field(min_length=1, max_length=32)
     expiry: str
     cvv: str = Field(min_length=3, max_length=4)
     idempotency_key: str = Field(min_length=8, max_length=64)
@@ -16,26 +16,24 @@ class PaymentCreate(BaseModel):
         digits = re.sub(r"\s+", "", value)
         if not digits.isdigit():
             raise ValueError("Card number must contain only digits")
-        if len(digits) < 12 or len(digits) > 19:
-            raise ValueError("Card number must be between 12 and 19 digits")
-        if not _passes_luhn_check(digits):
-            raise ValueError("Card number is invalid")
+        if len(digits) < 13 or len(digits) > 19:
+            raise ValueError("Card number must contain 13 to 19 digits")
         return digits
 
     @field_validator("cvv")
     @classmethod
     def validate_cvv(cls, value: str) -> str:
         if not value.isdigit():
-            raise ValueError("CVV must contain only digits")
+            raise ValueError("Security code must contain only digits")
         if len(value) not in (3, 4):
-            raise ValueError("CVV must be 3 or 4 digits")
+            raise ValueError("Security code must contain 3 or 4 digits")
         return value
 
     @field_validator("expiry")
     @classmethod
     def validate_expiry_format(cls, value: str) -> str:
-        if not re.fullmatch(r"(0[1-9]|1[0-2])/\d{2,4}", value):
-            raise ValueError("Expiry must use MM/YY or MM/YYYY format")
+        if not re.fullmatch(r"(0[1-9]|1[0-2])/\d{2}", value):
+            raise ValueError("Expiry date must be in MM/YY format")
         return value
 
     @field_validator("idempotency_key")
@@ -73,18 +71,3 @@ class PaymentConfirmation(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-def _passes_luhn_check(card_number: str) -> bool:
-    total = 0
-    reverse_digits = card_number[::-1]
-
-    for index, char in enumerate(reverse_digits):
-        digit = int(char)
-        if index % 2 == 1:
-            digit *= 2
-            if digit > 9:
-                digit -= 9
-        total += digit
-
-    return total % 10 == 0

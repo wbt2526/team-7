@@ -123,6 +123,15 @@ def read_my_bookings(
     return booking_crud.get_user_bookings(db, current_user.id)
 
 
+@app.patch("/bookings/{booking_id}/cancel", response_model=booking_schemas.Booking)
+def cancel_my_booking(
+    booking_id: int,
+    current_user: user_schemas.User = Depends(is_valid_user),
+    db: Session = Depends(get_db),
+):
+    return booking_crud.cancel_pending_booking(db, booking_id, current_user.id)
+
+
 @app.get("/admin/bookings", response_model=List[booking_schemas.Booking])
 def read_all_bookings(
     current_user: user_schemas.User = Depends(is_admin_user),
