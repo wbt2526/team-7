@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../lib/api";
 import { getStoredUser } from "../lib/auth";
 
+const inputClass =
+  "w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
+
 function normalizeCardNumber(value) {
   return value.replace(/\s+/g, "");
 }
@@ -72,14 +75,22 @@ const CheckoutPage = () => {
 
   if (!trip) {
     return (
-      <div className="py-20 text-center">
-        <p>No trip data found. Please select a trip first.</p>
-        <button onClick={() => navigate("/")} className="text-blue-600 underline">Go back</button>
-      </div>
+      <section className="min-h-[calc(100vh-72px)] bg-slate-50 px-6 py-16">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <h1 className="text-2xl font-black text-slate-950">No trip selected</h1>
+          <p className="mt-3 text-slate-600">Please choose a trip before starting checkout.</p>
+          <button
+            type="button"
+            onClick={() => navigate("/tours")}
+            className="mt-6 rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+          >
+            Browse trips
+          </button>
+        </div>
+      </section>
     );
   }
 
-  const totalPassengers = Number(adults) + Number(children);
   const calculatedTotalPrice =
     Number(adults) * Number(trip.price) + Number(children) * Number(trip.child_price);
 
@@ -154,103 +165,140 @@ const CheckoutPage = () => {
   };
 
   return (
-    <section className="min-h-[calc(100vh-72px)] bg-gray-50">
-      <form onSubmit={handlePayment} className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <h1 className="mb-8 text-3xl font-bold text-gray-900">Complete Your Booking</h1>
+    <section className="min-h-[calc(100vh-72px)] bg-slate-50 px-6 py-12">
+      <form onSubmit={handlePayment} className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1fr_380px]">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-blue-600">Secure academic checkout</p>
+          <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-950">Complete Your Booking</h1>
+          <p className="mt-2 max-w-2xl text-slate-600">
+            Confirm passenger details and complete the simulated payment. No real payment will be processed.
+          </p>
 
-          <div className="mb-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-            <h2 className="mb-5 text-xl font-semibold text-gray-900">Lead Passenger Information</h2>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <input type="text" placeholder="First Name" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
-              <input type="text" placeholder="Last Name" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
-              <input type="email" placeholder="Email" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
-              <input type="tel" placeholder="Phone" required className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="text-xl font-black text-slate-950">Lead Passenger Information</h2>
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <input type="text" placeholder="First name" required className={inputClass} />
+              <input type="text" placeholder="Last name" required className={inputClass} />
+              <input type="email" placeholder="Email" required className={inputClass} />
+              <input type="tel" placeholder="Phone" required className={inputClass} />
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Payment Details</h2>
-                <p className="mt-1 text-sm text-gray-500">Payment is simulated for this academic demo.</p>
+                <h2 className="text-xl font-black text-slate-950">Payment Details</h2>
+                <p className="mt-1 text-sm text-slate-500">Payment is simulated for this academic demo.</p>
               </div>
               {pendingBookingId && (
-                <span className="rounded-full bg-yellow-50 px-3 py-1 text-xs font-bold text-yellow-700">
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
                   Pending booking #{pendingBookingId}
                 </span>
               )}
             </div>
 
-            <div className="mb-5 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
-              No real payment will be processed. Use non-real card details only.
+            <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+              Use non-real card details only. The app stores only the last four digits for the simulated payment record.
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
-                <input type="text" placeholder="Cardholder Name" required value={cardholderName} onChange={(e) => setCardholderName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
+                <input
+                  type="text"
+                  placeholder="Cardholder name"
+                  required
+                  value={cardholderName}
+                  onChange={(e) => setCardholderName(e.target.value)}
+                  className={inputClass}
+                />
               </div>
               <div className="md:col-span-2">
-                <input type="text" placeholder="Card Number" inputMode="numeric" autoComplete="cc-number" required value={cardNumber} onChange={(e) => setCardNumber(formatCardNumber(e.target.value))} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
+                <input
+                  type="text"
+                  placeholder="Card number"
+                  inputMode="numeric"
+                  autoComplete="cc-number"
+                  required
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                  className={inputClass}
+                />
               </div>
-              <input type="text" placeholder="MM/YY" inputMode="numeric" autoComplete="cc-exp" required value={expiry} onChange={(e) => setExpiry(formatExpiry(e.target.value))} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
-              <input type="password" placeholder="CVV" inputMode="numeric" autoComplete="cc-csc" required value={cvv} onChange={(e) => setCvv(formatCvv(e.target.value))} className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-blue-500" />
+              <input
+                type="text"
+                placeholder="MM/YY"
+                inputMode="numeric"
+                autoComplete="cc-exp"
+                required
+                value={expiry}
+                onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+                className={inputClass}
+              />
+              <input
+                type="password"
+                placeholder="Security code"
+                inputMode="numeric"
+                autoComplete="cc-csc"
+                required
+                value={cvv}
+                onChange={(e) => setCvv(formatCvv(e.target.value))}
+                className={inputClass}
+              />
             </div>
 
             {error && (
-              <div className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
                 {error}
               </div>
             )}
 
             {notice && (
-              <div className="mt-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                 {notice}
               </div>
             )}
 
             {success && (
-              <div className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-700">
+              <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">
                 {success}
               </div>
             )}
           </div>
         </div>
 
-        <aside className="lg:col-span-1">
-          <div className="sticky top-24 rounded-xl border border-gray-100 bg-white p-6 shadow-lg">
-            <h2 className="mb-4 border-b pb-4 text-xl font-bold text-gray-900">Booking Summary</h2>
-            <div className="space-y-3 text-gray-700">
-              <p className="text-lg font-bold text-blue-600">{trip.title}</p>
-              <div className="flex justify-between text-sm">
-                <span>Passengers:</span>
-                <span className="font-semibold">{adults} Adults, {children} Children</span>
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+            <h2 className="border-b border-slate-100 pb-4 text-xl font-black text-slate-950">Booking Summary</h2>
+            <div className="mt-5 space-y-4 text-sm text-slate-600">
+              <p className="text-lg font-black text-slate-950">{trip.title}</p>
+              <div className="flex justify-between">
+                <span>Passengers</span>
+                <span className="font-bold text-slate-950">{adults} adults, {children} children</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Adult price:</span>
-                <span className="font-semibold">${trip.price}</span>
+              <div className="flex justify-between">
+                <span>Adult price</span>
+                <span className="font-bold text-slate-950">${Number(trip.price).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Child price:</span>
-                <span className="font-semibold">${trip.child_price}</span>
+              <div className="flex justify-between">
+                <span>Child price</span>
+                <span className="font-bold text-slate-950">${Number(trip.child_price).toFixed(2)}</span>
               </div>
             </div>
-            
-            <div className="mt-6 border-t pt-4">
-              <p className="text-xs uppercase tracking-wider text-gray-400">Total Price</p>
-              <p className="text-4xl font-black text-gray-900">${calculatedTotalPrice.toFixed(2)}</p>
+
+            <div className="mt-6 border-t border-slate-100 pt-5">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Total price</p>
+              <p className="mt-1 text-4xl font-black text-slate-950">${calculatedTotalPrice.toFixed(2)}</p>
             </div>
 
             <button
               type="submit"
               disabled={loading || Boolean(success)}
-              className={`mt-8 w-full rounded-lg py-4 font-bold text-white shadow-md transition-all ${
-                loading || success ? "cursor-not-allowed bg-gray-400 opacity-80" : "bg-blue-600 hover:bg-blue-700 active:scale-95"
+              className={`mt-8 w-full rounded-xl py-4 font-bold text-white transition ${
+                loading || success ? "cursor-not-allowed bg-slate-300" : "bg-slate-950 hover:bg-slate-800"
               }`}
             >
-              {loading ? "Processing..." : pendingBookingId ? "Retry Payment" : "Confirm & Pay Now"}
+              {loading ? "Processing..." : pendingBookingId ? "Retry payment" : "Confirm and pay"}
             </button>
-            <p className="mt-4 text-center text-xs text-gray-400">Only the last four digits are stored for the simulated payment record.</p>
           </div>
         </aside>
       </form>
