@@ -37,6 +37,9 @@ const TripCard = ({ trip, isAdmin }) => {
 
       <div className="flex flex-1 flex-col p-5">
         <div className="space-y-3">
+          {trip.location && (
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">{trip.location}</p>
+          )}
           <h3 className="text-2xl font-black tracking-tight text-slate-950">{trip.title}</h3>
           <p className="text-sm leading-6 text-slate-500">{description}</p>
         </div>

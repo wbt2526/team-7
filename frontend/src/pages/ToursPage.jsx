@@ -7,7 +7,7 @@ import { getStoredUser } from "../lib/auth";
 function matchesSearch(trip, search) {
   const query = search.trim().toLowerCase();
   if (!query) return true;
-  return `${trip.title} ${trip.description}`.toLowerCase().includes(query);
+  return `${trip.title} ${trip.description} ${trip.location ?? ""}`.toLowerCase().includes(query);
 }
 
 function sortTrips(trips, sortBy) {
@@ -56,7 +56,7 @@ const ToursPage = () => {
           <div>
             <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">All tours</h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-              Browse every trip stored in the backend. Search, filter by real status, and compare actual prices and dates.
+              Browse every trip stored in the backend. Search by title, description, or location, then compare actual prices and dates.
             </p>
           </div>
           <div className="rounded-2xl bg-slate-50 px-5 py-4">

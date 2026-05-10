@@ -12,7 +12,7 @@ const PAGE_SIZE = 6;
 function matchesSearch(trip, search) {
   const query = search.trim().toLowerCase();
   if (!query) return true;
-  return `${trip.title} ${trip.description}`.toLowerCase().includes(query);
+  return `${trip.title} ${trip.description} ${trip.location ?? ""}`.toLowerCase().includes(query);
 }
 
 function sortTrips(trips, sortBy) {
@@ -114,7 +114,7 @@ const HomePage = () => {
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
                 <h3 className="text-xl font-black text-slate-950">No trips match your search</h3>
                 <p className="mt-2 text-sm text-slate-500">
-                  Try a different title, description keyword, or status filter.
+                  Try a different title, description, location, or status filter.
                 </p>
               </div>
             )}

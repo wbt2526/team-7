@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class TripBase(BaseModel):
     title: str
     description: str
+    location: str = Field(min_length=2, max_length=120)
     date: datetime
     duration: int
     image: Optional[str] = "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1000"

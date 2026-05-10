@@ -16,6 +16,7 @@ CREATE TABLE trips (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
+    location VARCHAR(120) NOT NULL,
     date DATETIME NOT NULL,
     duration INT NOT NULL,
     image VARCHAR(255) NULL,

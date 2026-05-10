@@ -14,6 +14,7 @@ class TripDB(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     title = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)
+    location = Column(String(120), nullable=False)
     date = Column(DateTime, nullable=False)
     duration = Column(Integer, nullable=False)
     image = Column(String(255), nullable=True)

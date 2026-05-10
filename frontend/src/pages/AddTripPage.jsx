@@ -11,6 +11,9 @@ const statusOptions = ["available", "cancelled", "reported"];
 function validateTripForm(formData) {
   if (!formData.title.trim()) return "Trip title is required.";
   if (!formData.description.trim()) return "Description is required.";
+  const location = formData.location.trim();
+  if (!location) return "Location is required.";
+  if (location.length < 2 || location.length > 120) return "Location must be between 2 and 120 characters.";
   if (!formData.date) return "Start date is required.";
   if (Number(formData.price) < 0) return "Adult price must be 0 or greater.";
   if (Number(formData.child_price) < 0) return "Child price must be 0 or greater.";
@@ -29,6 +32,7 @@ const AddTripPage = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    location: "",
     image: "",
     price: "",
     child_price: "",
@@ -62,6 +66,7 @@ const AddTripPage = () => {
       const payload = {
         title: formData.title.trim(),
         description: formData.description.trim(),
+        location: formData.location.trim(),
         image: formData.image.trim(),
         price: Number(formData.price),
         child_price: Number(formData.child_price),
@@ -144,6 +149,21 @@ const AddTripPage = () => {
             </div>
 
             <div>
+              <label className="mb-2 block text-sm font-bold text-slate-700">Location</label>
+              <input
+                type="text"
+                name="location"
+                required
+                minLength="2"
+                maxLength="120"
+                value={formData.location}
+                onChange={handleChange}
+                className={inputClass}
+                placeholder="e.g., Paris, France"
+              />
+            </div>
+
+            <div>
               <label className="mb-2 block text-sm font-bold text-slate-700">Image URL</label>
               <input
                 type="url"
@@ -205,6 +225,10 @@ const AddTripPage = () => {
             )}
 
             <div className="mt-5 space-y-3 text-sm text-slate-600">
+              <div className="flex justify-between">
+                <span>Location</span>
+                <span className="font-bold text-slate-950">{formData.location || "Not set"}</span>
+              </div>
               <div className="flex justify-between">
                 <span>Status</span>
                 <span className="font-bold capitalize text-slate-950">{formData.status}</span>

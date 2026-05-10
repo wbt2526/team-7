@@ -24,7 +24,7 @@ const HomeFilters = ({ search, setSearch, statusFilter, setStatusFilter, sortBy,
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title or description"
+            placeholder="Search by title, description, or location"
             className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
           />
         </label>

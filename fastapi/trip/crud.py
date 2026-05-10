@@ -34,6 +34,7 @@ def update_trip(db: Session, trip_id: int, trip: TripCreate):
     
     db_trip.title = trip.title
     db_trip.description = trip.description
+    db_trip.location = trip.location
     db_trip.date = trip.date
     db_trip.duration = trip.duration
     db_trip.image = trip.image
@@ -61,6 +62,7 @@ def create_trip(db: Session, trip: TripCreate, user_id: int):
     db_trip = TripDB(
         title=trip.title,
         description=trip.description,
+        location=trip.location,
         date=trip.date,
         duration=trip.duration,
         image=trip.image,

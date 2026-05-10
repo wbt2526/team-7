@@ -123,9 +123,16 @@ const TripDetailsPage = () => {
             <img src={trip.image} alt={trip.title} className="h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/10 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
-              <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold capitalize ${statusClass}`}>
-                {status}
-              </span>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold capitalize ${statusClass}`}>
+                  {status}
+                </span>
+                {trip.location && (
+                  <span className="rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-bold text-white backdrop-blur">
+                    {trip.location}
+                  </span>
+                )}
+              </div>
               <h1 className="mt-4 max-w-4xl text-4xl font-black tracking-tight text-white md:text-6xl">
                 {trip.title}
               </h1>
@@ -142,7 +149,13 @@ const TripDetailsPage = () => {
               </p>
             </section>
 
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+              {trip.location && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Location</p>
+                  <p className="mt-2 font-bold text-slate-900">{trip.location}</p>
+                </div>
+              )}
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Date</p>
                 <p className="mt-2 font-bold text-slate-900">{formatTripDate(trip.date)}</p>
