@@ -23,7 +23,7 @@ const AdminPage = () => {
       const [bRes, tRes, uRes] = await Promise.all([
         apiRequest("/admin/bookings", { token: user.token }),
         apiRequest("/trips/"),
-        apiRequest("/users/")
+        apiRequest("/users/", { token: user.token })
       ]);
 
       const tMap = {};

@@ -32,7 +32,7 @@ const AddTripPage = () => {
 
     try {
       const user = getStoredUser();
-      if (!user || user.role !== "admin") throw new Error("You must be logged in as admin.");
+      if (!user?.token || user.role !== "admin") throw new Error("You must be logged in as admin.");
 
       const payload = {
         ...formData,
@@ -42,8 +42,9 @@ const AddTripPage = () => {
         total_places: parseInt(formData.total_places),
       };
 
-      await apiRequest(`/trips/?user_id=${user.user_id}`, {
+      await apiRequest("/trips/", {
         method: "POST",
+        token: user.token,
         body: JSON.stringify(payload),
       });
 

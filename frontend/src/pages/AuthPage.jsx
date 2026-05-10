@@ -40,7 +40,6 @@ const AuthPage = () => {
           last_name: lastName,
           email,
           password,
-          role: 0,
         }),
       });
       alert("Registration successful! Please log in.");

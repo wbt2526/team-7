@@ -28,32 +28,64 @@ app.add_middleware(
 
 # ========== PYDANTIC MODELS ==========
 
+def require_owner_or_admin(resource_user_id: int, current_user: user_schemas.User):
+    if current_user.role != 1 and current_user.id != resource_user_id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
 # User CRUD Operations
 @app.post("/user/", response_model=user_schemas.User)
 def create_user(user: user_schemas.UserCreate, db: Session = Depends(get_db)):
     return user_crud.create_user(db, user)
 
 @app.get("/users/", response_model=List[user_schemas.User])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(user_models.UserDB).offset(skip).limit(limit).all()
+def read_users(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: user_schemas.User = Depends(is_admin_user),
+    db: Session = Depends(get_db),
+):
+    return user_crud.get_users(db, skip, limit)
 
 @app.get("/users/{user_id}", response_model=user_schemas.User)
-def read_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = db.query(user_models.UserDB).filter(user_models.UserDB.id == user_id).first()
+def read_user(
+    user_id: int,
+    current_user: user_schemas.User = Depends(is_valid_user),
+    db: Session = Depends(get_db),
+):
+    require_owner_or_admin(user_id, current_user)
+    return user_crud.get_user(db, user_id)
+
+@app.get("/users/email/{email}", response_model=user_schemas.User)
+def read_user_by_email(
+    email: str,
+    current_user: user_schemas.User = Depends(is_admin_user),
+    db: Session = Depends(get_db),
+):
+    db_user = user_crud.get_user_by_email(db, email)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
 
-@app.get("/users/email/{email}", response_model=user_schemas.User)
-def read_user_by_email(email: str, db: Session = Depends(get_db)):
-    return user_crud.get_user_by_email(db, email)
-
 @app.put("/users/{user_id}", response_model=user_schemas.User)
-def update_user(user_id: int, user: user_schemas.UserCreate, db: Session = Depends(get_db)):
+def update_user(
+    user_id: int,
+    user: user_schemas.UserUpdate,
+    current_user: user_schemas.User = Depends(is_valid_user),
+    db: Session = Depends(get_db),
+):
+    require_owner_or_admin(user_id, current_user)
+    if user.role is not None and user.role not in (0, 1):
+        raise HTTPException(status_code=400, detail="User role must be 0 or 1")
+    if current_user.role != 1 and user.role is not None:
+        raise HTTPException(status_code=403, detail="Only admins can change user roles")
     return user_crud.update_user(db, user_id, user)
 
 @app.delete("/users/{user_id}", response_model=user_schemas.User)
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+def delete_user(
+    user_id: int,
+    current_user: user_schemas.User = Depends(is_admin_user),
+    db: Session = Depends(get_db),
+):
     return user_crud.delete_user(db, user_id)
 
 @app.post("/login", response_model=Token)
@@ -66,8 +98,12 @@ def refresh_login(token: str, db: Session = Depends(get_db)):
 
 # # ========== TRIP ENDPOINTS ==========
 @app.post("/trips/")
-def create_trip(trip: trip_schemas.TripCreate, user_id: int, db: Session = Depends(get_db)):
-    return trip_crud.create_trip(db, trip, user_id)
+def create_trip(
+    trip: trip_schemas.TripCreate,
+    current_user: user_schemas.User = Depends(is_admin_user),
+    db: Session = Depends(get_db),
+):
+    return trip_crud.create_trip(db, trip, current_user.id)
 
 @app.get("/trips/", response_model=List[trip_schemas.Trip])
 def read_trips(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
