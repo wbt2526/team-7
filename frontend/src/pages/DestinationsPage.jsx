@@ -1,226 +1,89 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../lib/api";
-import { getTripMeta } from "../lib/tripPresentation";
+
+function formatDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date to confirm";
+  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
 
 const DestinationsPage = () => {
   const [trips, setTrips] = useState([]);
   const [search, setSearch] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     apiRequest("/trips/")
       .then(setTrips)
-      .catch(() => setError("Failed to load destinations."))
+      .catch(() => setError("Failed to load trips."))
       .finally(() => setLoading(false));
   }, []);
 
-  const destinations = useMemo(() => {
-    const grouped = new Map();
-
-    trips.forEach((trip, index) => {
-      const meta = getTripMeta(trip, index);
-      const key = meta.location;
-
-      if (!grouped.has(key)) {
-        grouped.set(key, {
-          location: meta.location,
-          image: trip.image,
-          count: 0,
-          cheapest: Number(trip.price),
-          averagePrice: 0,
-          sampleTripId: trip.id,
-          sampleTripTitle: trip.title,
-          totalPrice: 0,
-        });
-      }
-
-      const current = grouped.get(key);
-      current.count += 1;
-      current.totalPrice += Number(trip.price);
-      current.cheapest = Math.min(current.cheapest, Number(trip.price));
-      current.averagePrice = current.totalPrice / current.count;
-    });
-
-    return Array.from(grouped.values())
-      .filter((item) => item.location.toLowerCase().includes(search.toLowerCase()))
-      .sort((a, b) => a.location.localeCompare(b.location));
+  const visibleTrips = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return trips
+      .filter((trip) => !query || `${trip.title} ${trip.description}`.toLowerCase().includes(query))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [search, trips]);
 
-  useEffect(() => {
-    if (!destinations.length) {
-      setSelectedLocation("");
-      return;
-    }
-
-    const stillExists = destinations.some((item) => item.location === selectedLocation);
-    if (!stillExists) {
-      setSelectedLocation(destinations[0].location);
-    }
-  }, [destinations, selectedLocation]);
-
-  const featuredDestination = destinations.find((item) => item.location === selectedLocation) ?? null;
-
-  const destinationTrips = useMemo(() => {
-    if (!featuredDestination) {
-      return [];
-    }
-
-    return trips
-      .map((trip, index) => ({ trip, meta: getTripMeta(trip, index) }))
-      .filter(({ meta }) => meta.location === featuredDestination.location)
-      .slice(0, 4);
-  }, [featuredDestination, trips]);
-
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
-      <div className="overflow-hidden rounded-[32px] bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_55%,#60a5fa_100%)] px-6 py-8 text-white shadow-[0_30px_80px_rgba(30,64,175,0.25)] sm:px-8 lg:px-10">
-        <p className="text-sm font-semibold uppercase tracking-[0.32em] text-blue-100">Explore by place</p>
-        <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Destinations that feel like a decision, not just a list</h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-blue-50/90">
-              Compare locations first, then jump into the trips waiting there. This page is built for browsing by place instead of browsing by card after card.
+    <section className="mx-auto w-full max-w-7xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
+      <header className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+        <p className="text-sm font-bold uppercase tracking-[0.22em] text-blue-600">Explore trips</p>
+        <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_360px] lg:items-end">
+          <div>
+            <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">Browse the current catalog</h1>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+              Destination labels will become more specific after a real location field is added. For now, this page shows only trip data stored by the backend.
             </p>
           </div>
           <input
+            type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search destination"
-            className="w-full rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-white placeholder:text-blue-100/70 outline-none backdrop-blur md:max-w-sm"
+            placeholder="Search trips"
+            className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium outline-none focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
           />
         </div>
-      </div>
+      </header>
 
-      {loading && <p className="py-12 text-center text-slate-500">Loading destinations...</p>}
-      {error && <p className="py-12 text-center text-red-600">{error}</p>}
+      {loading && <div className="rounded-2xl bg-white px-6 py-14 text-center text-slate-500">Loading trips...</div>}
+      {error && <div className="rounded-2xl bg-red-50 px-6 py-8 text-center text-red-700">{error}</div>}
 
       {!loading && !error && (
-        <div className="mt-10 grid gap-8 lg:grid-cols-[300px_1fr]">
-          <aside className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-black text-slate-900">All places</h2>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                {destinations.length}
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {destinations.map((destination) => {
-                const isActive = destination.location === selectedLocation;
-                return (
-                  <button
-                    key={destination.location}
-                    type="button"
-                    onClick={() => setSelectedLocation(destination.location)}
-                    className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
-                      isActive
-                        ? "border-blue-200 bg-blue-50 shadow-sm"
-                        : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"
-                    }`}
-                  >
-                    <p className="text-base font-bold text-slate-900">{destination.location}</p>
-                    <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
-                      <span>{destination.count} trips</span>
-                      <span>from ${destination.cheapest.toLocaleString()}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </aside>
-
-          <div className="space-y-8">
-            {featuredDestination && (
-              <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm">
-                <div className="grid gap-0 lg:grid-cols-[1.2fr_0.8fr]">
-                  <div className="min-h-[320px]">
-                    <img
-                      src={featuredDestination.image}
-                      alt={featuredDestination.location}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="flex flex-col justify-between p-6 sm:p-8">
-                    <div>
-                      <p className="text-sm font-semibold uppercase tracking-[0.28em] text-blue-600">Featured destination</p>
-                      <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-900">
-                        {featuredDestination.location}
-                      </h2>
-                      <p className="mt-4 text-slate-500">
-                        Start here if you want a quick feel for this destination’s catalog before diving into specific trips.
-                      </p>
-                    </div>
-
-                    <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                      <div className="rounded-2xl bg-slate-50 p-4">
-                        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Trips</p>
-                        <p className="mt-2 text-2xl font-black text-slate-900">{featuredDestination.count}</p>
-                      </div>
-                      <div className="rounded-2xl bg-slate-50 p-4">
-                        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">From</p>
-                        <p className="mt-2 text-2xl font-black text-blue-600">
-                          ${featuredDestination.cheapest.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-slate-50 p-4">
-                        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Average</p>
-                        <p className="mt-2 text-2xl font-black text-slate-900">
-                          ${Math.round(featuredDestination.averagePrice).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    <Link
-                      to={`/trip/${featuredDestination.sampleTripId}`}
-                      className="mt-8 inline-flex w-fit rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
-                    >
-                      Start with {featuredDestination.sampleTripTitle}
-                    </Link>
-                  </div>
+        <div className="grid gap-5">
+          {visibleTrips.map((trip) => (
+            <Link
+              key={trip.id}
+              to={`/trip/${trip.id}`}
+              className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg md:grid-cols-[180px_1fr_auto] md:items-center"
+            >
+              <img src={trip.image} alt={trip.title} className="h-40 w-full rounded-xl object-cover md:h-32 md:w-44" />
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold capitalize text-slate-700">
+                    {trip.status}
+                  </span>
+                  <span className="text-sm text-slate-500">{formatDate(trip.date)}</span>
                 </div>
+                <h2 className="mt-3 text-2xl font-black text-slate-950">{trip.title}</h2>
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{trip.description}</p>
               </div>
-            )}
+              <div className="text-left md:text-right">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">From</p>
+                <p className="mt-1 text-3xl font-black text-blue-600">${Number(trip.price).toFixed(2)}</p>
+                <p className="mt-2 text-sm text-slate-500">{trip.remaining_places} seats left</p>
+              </div>
+            </Link>
+          ))}
 
-            <div>
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-2xl font-black text-slate-900">Trips in this destination</h3>
-                <span className="text-sm text-slate-500">{destinationTrips.length} shown</span>
-              </div>
-              <div className="grid gap-5 md:grid-cols-2">
-                {destinationTrips.map(({ trip, meta }) => (
-                  <Link
-                    key={trip.id}
-                    to={`/trip/${trip.id}`}
-                    className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                          {meta.categoryBadge}
-                        </span>
-                        <h4 className="mt-4 text-2xl font-black tracking-tight text-slate-900">{trip.title}</h4>
-                        <p className="mt-2 text-sm text-slate-500">{trip.description}</p>
-                      </div>
-                      <div className="rounded-2xl bg-slate-50 px-3 py-2 text-sm font-bold text-slate-600">
-                        ⭐ {meta.rating}
-                      </div>
-                    </div>
-
-                    <div className="mt-6 flex items-end justify-between border-t border-slate-100 pt-4">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">From</p>
-                        <p className="text-3xl font-black text-blue-600">${Number(trip.price).toLocaleString()}</p>
-                      </div>
-                      <p className="text-sm text-slate-500">{trip.remaining_places} seats left</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+          {!visibleTrips.length && (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center text-slate-500">
+              No trips match your search.
             </div>
-          </div>
+          )}
         </div>
       )}
     </section>
