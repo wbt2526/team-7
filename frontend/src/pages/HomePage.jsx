@@ -1,28 +1,44 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import HeroSection from "../components/HeroSection";
 import TripCard from "../components/TripCard";
+import HomeFilters from "../components/home/HomeFilters";
+import HomePagination from "../components/home/HomePagination";
+import HomeResultsToolbar from "../components/home/HomeResultsToolbar";
+import { apiRequest } from "../lib/api";
+import { getStoredUser } from "../lib/auth";
 
-const TRIP_PLACEHOLDER_IMAGE =
-  "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80";
+const PAGE_SIZE = 6;
+
+function matchesSearch(trip, search) {
+  const query = search.trim().toLowerCase();
+  if (!query) return true;
+  return `${trip.title} ${trip.description} ${trip.location ?? ""}`.toLowerCase().includes(query);
+}
+
+function sortTrips(trips, sortBy) {
+  return [...trips].sort((a, b) => {
+    if (sortBy === "priceAsc") return Number(a.price) - Number(b.price);
+    if (sortBy === "priceDesc") return Number(b.price) - Number(a.price);
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
+}
 
 const HomePage = () => {
   const [trips, setTrips] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("dateAsc");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // 1. Proveravamo da li je ulogovan admin
-  const storedUser = localStorage.getItem("user");
-  const user = storedUser ? JSON.parse(storedUser) : null;
+  const user = getStoredUser();
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:8000/trips/");
-        if (!response.ok) {
-          throw new Error("Failed to fetch");
-        }
-        const data = await response.json();
+        const data = await apiRequest("/trips/");
         setTrips(data);
       } catch {
         setError("Failed to load trips.");
@@ -34,42 +50,77 @@ const HomePage = () => {
     fetchTrips();
   }, []);
 
-  return (
-    <div className="flex-1">
-      <HeroSection />
+  const filteredTrips = useMemo(() => {
+    const filtered = trips.filter((trip) => {
+      const statusMatches = statusFilter === "all" || trip.status === statusFilter;
+      return statusMatches && matchesSearch(trip, search);
+    });
 
-      <main className="mx-auto max-w-7xl px-6 py-16">
-        <h2 className="mb-8 text-3xl font-bold text-gray-900">
-          Top Trips in Catalog
-        </h2>
+    return sortTrips(filtered, sortBy);
+  }, [search, sortBy, statusFilter, trips]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTrips.length / PAGE_SIZE));
+  const visibleTrips = filteredTrips.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setSortBy("dateAsc");
+    setCurrentPage(1);
+  };
+
+  return (
+    <div className="flex-1 bg-slate-50 text-slate-950">
+      <HeroSection search={search} setSearch={setSearch} tripCount={trips.length} />
+
+      <main className="mx-auto max-w-7xl space-y-8 px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+        <HomeResultsToolbar filteredTripsCount={filteredTrips.length} totalTripsCount={trips.length} />
+
+        <HomeFilters
+          search={search}
+          setSearch={setSearch}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          clearFilters={clearFilters}
+        />
 
         {isLoading && (
-          <p className="py-12 text-center text-lg text-gray-600">
-            Loading amazing trips...
-          </p>
+          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center text-slate-500">
+            Loading trips from the backend...
+          </div>
         )}
 
         {error && (
-          <p className="py-12 text-center text-lg font-medium text-red-600">
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-8 text-center font-medium text-red-700">
             {error}
-          </p>
+          </div>
         )}
 
         {!isLoading && !error && (
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {trips.map((trip) => (
-              <TripCard
-                key={trip.id}
-                id={trip.id}
-                title={trip.title}
-                price={Number(trip.price)}
-                image={trip.image ?? TRIP_PLACEHOLDER_IMAGE}
-                remaining_places={trip.remaining_places}
-                // 2. Šaljemo informaciju kartici da li treba da pokaže Edit dugme
-                isAdmin={isAdmin} 
-              />
-            ))}
-          </div>
+          <>
+            {visibleTrips.length > 0 ? (
+              <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {visibleTrips.map((trip) => (
+                  <TripCard key={trip.id} trip={trip} isAdmin={isAdmin} />
+                ))}
+              </section>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+                <h3 className="text-xl font-black text-slate-950">No trips match your search</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Try a different title, description, location, or status filter.
+                </p>
+              </div>
+            )}
+
+            <HomePagination currentPage={currentPage} setCurrentPage={setCurrentPage} totalPages={totalPages} />
+          </>
         )}
       </main>
     </div>

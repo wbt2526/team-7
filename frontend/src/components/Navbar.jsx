@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+
+const navItems = [
+  { label: "Tours", to: "/tours" },
+  { label: "Best Value", to: "/deals" },
+  { label: "Explore", to: "/destinations" },
+  { label: "About", to: "/about" },
+];
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
@@ -9,11 +16,7 @@ const Navbar = () => {
   useEffect(() => {
     try {
       const stored = localStorage.getItem("user");
-      if (stored) {
-        setUser(JSON.parse(stored));
-      } else {
-        setUser(null);
-      }
+      setUser(stored ? JSON.parse(stored) : null);
     } catch {
       setUser(null);
     }
@@ -26,96 +29,78 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 z-50 w-full bg-white px-6 py-4 shadow-sm border-b border-gray-100">
-      <div className="mx-auto flex max-w-7xl items-center justify-between">
-        {/* Logo sekcija */}
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🧳</span>
-          <Link to="/" className="text-xl font-bold text-blue-600">
-            TravelBox
-          </Link>
+    <nav className="fixed left-0 top-0 z-50 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-5 px-4 sm:px-6 lg:px-8">
+        <Link to="/" className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white">
+            W
+          </span>
+          <span className="text-xl font-black tracking-tight text-slate-950">Wanderlust</span>
+        </Link>
+
+        <div className="hidden items-center gap-1 md:flex">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </div>
 
-        {/* Centralni linkovi (vidljivi na desktopu) */}
-        <ul className="hidden items-center gap-8 md:flex">
-          <li>
-            <Link to="/" className="text-gray-600 transition-colors hover:text-blue-600">
-              Home
-            </Link>
-          </li>
-          <li>
-            <a href="#" className="text-gray-600 transition-colors hover:text-blue-600">
-              Tours
-            </a>
-          </li>
-          <li>
-            <a href="#" className="text-gray-600 transition-colors hover:text-blue-600">
-              About
-            </a>
-          </li>
-        </ul>
-
-        {/* Desna strana - User / Admin akcije */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-2">
           {user ? (
             <>
-              {/* ADMIN OPCIJE */}
               {user.role === "admin" ? (
-                <div className="flex items-center gap-2">
+                <>
                   <Link
                     to="/admin"
-                    className="rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-100"
+                    className="hidden rounded-full border border-red-100 bg-red-50 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-100 sm:inline-flex"
                   >
-                    🛡️ Admin Panel
+                    Admin
                   </Link>
                   <Link
                     to="/add-trip"
-                    className="rounded-md bg-blue-600 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 shadow-sm"
+                    className="hidden rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 sm:inline-flex"
                   >
-                    + Add Trip
+                    Add Trip
                   </Link>
-                </div>
+                </>
               ) : (
-                /* USER OPCIJE */
                 <Link
                   to="/bookings"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:text-blue-600"
+                  className="rounded-full border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
                 >
                   My Bookings
                 </Link>
               )}
 
-              {/* Email i Logout */}
-              <span className="hidden text-sm text-gray-500 sm:inline border-l pl-3 ml-2">
+              <span className="hidden max-w-[180px] truncate rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 lg:inline">
                 {user.email}
               </span>
-              
+
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200"
+                className="rounded-full bg-slate-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800"
               >
                 Log out
               </button>
             </>
           ) : (
-            <>
-              {/* GOST OPCIJE (Login / Sign Up) */}
-              <Link
-                to="/auth"
-                state={{ defaultIsLogin: true }}
-                className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:text-blue-600"
-              >
-                Log in
-              </Link>
-              <Link
-                to="/auth"
-                state={{ defaultIsLogin: false }}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-              >
-                Sign Up
-              </Link>
-            </>
+            <Link
+              to="/auth"
+              state={{ defaultIsLogin: true }}
+              className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+            >
+              Login
+            </Link>
           )}
         </div>
       </div>

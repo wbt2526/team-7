@@ -1,0 +1,343 @@
+# INSTALL
+
+This file explains how to run the Wanderlust full-stack application locally.
+
+Wanderlust uses:
+
+- FastAPI backend
+- React + Vite frontend
+- MySQL/MariaDB database through XAMPP/phpMyAdmin
+- SQLAlchemy ORM
+- JWT authentication
+
+The recommended final setup path for this submission is to import the provided SQL file through phpMyAdmin.
+
+## 1. Requirements
+
+Install the following tools before starting:
+
+- Python 3.11 or newer
+- Node.js and npm
+- XAMPP with Apache and MySQL/MariaDB
+- Git
+
+Recommended local ports:
+
+- Backend: `http://127.0.0.1:8000`
+- Frontend: `http://localhost:5173`
+- phpMyAdmin: `http://localhost/phpmyadmin`
+
+
+## 2. Database Setup
+
+1. Open XAMPP Control Panel.
+2. Start **Apache** and **MySQL**.
+3. Open phpMyAdmin:
+
+http://localhost/phpmyadmin
+
+4. Create a new database named:
+
+webapp
+
+5. Select the `webapp` database.
+6. Open the **Import** tab.
+7. Import this file:
+
+doc/webapp_final.sql
+
+This is the official final database import file for the project.
+
+The import creates the required tables:
+
+* `users`
+* `trips`
+* `bookings`
+* `payments`
+
+It also inserts demo users and demo trips.
+
+Do not use Alembic as the final setup path for this submission. The official final import file is `doc/webapp_final.sql`.
+The database name is `webapp`. The SQL file name is `doc/webapp_final.sql`.
+
+
+## 3. Demo Accounts
+
+After importing `doc/webapp_final.sql`, these accounts are available:
+
+| Role  | Email                   | Password   |
+|-------|-------------------|--------------|
+| Admin | `admin@wanderlust.test` | `admin123` |
+| User  | `user@wanderlust.test`  | `user123`  |
+
+The admin account can manage trips and view users/bookings.
+
+The normal user account can browse trips, book trips, complete simulated payment, view personal bookings, and cancel pending bookings.
+
+
+## 4. Backend Setup
+
+Open a terminal in the project root:
+
+cd C:\path\to\team-7
+
+Then enter the backend folder:
+
+cd fastapi
+
+
+### 4.1 Windows Setup
+
+Create a virtual environment in the project root:
+
+python -m venv ..\.venv
+
+Activate it:
+
+..\.venv\Scripts\Activate.ps1
+
+
+Install backend dependencies:
+
+pip install -r requirements-windows.txt
+
+The Windows requirements file excludes `uvloop`, because `uvloop` is not supported on Windows.
+
+Set the database connection for the current PowerShell session:
+
+$env:DATABASE_URL="mysql+pymysql://root:@localhost/webapp"
+
+Optional: set a JWT secret for the current session:
+
+$env:JWT_SECRET_KEY="local-development-secret"
+
+Start the backend:
+
+python -m uvicorn main:app --reload
+
+The backend should now run at:
+
+http://127.0.0.1:8000
+
+FastAPI documentation is available at:
+
+http://127.0.0.1:8000/docs
+
+
+### 4.2 macOS / Linux Setup
+
+From the project root, enter the backend folder:
+
+cd fastapi
+
+Create a virtual environment:
+
+python3 -m venv ../.venv
+
+Activate it:
+
+source ../.venv/bin/activate
+
+Install backend dependencies:
+
+pip install -r requirements.txt
+
+Set the database connection:
+
+export DATABASE_URL="mysql+pymysql://root:@localhost/webapp"
+
+Optional: set a JWT secret:
+
+export JWT_SECRET_KEY="local-development-secret"
+
+Start the backend:
+
+python -m uvicorn main:app --reload
+
+
+The backend should now run at:
+
+http://127.0.0.1:8000
+
+FastAPI documentation is available at:
+
+http://127.0.0.1:8000/docs
+
+If `uvloop` causes installation problems on macOS/Linux, install from `requirements-windows.txt` instead. The application does not require `uvloop` for correctness.
+
+
+## 5. Frontend Setup
+
+Open a second terminal from the project root:
+
+cd C:\path\to\team-7
+
+Enter the frontend folder:
+
+cd frontend
+
+Install frontend dependencies:
+
+npm install
+
+Start the frontend development server:
+
+npm run dev
+
+The frontend should now run at:
+
+http://localhost:5173
+
+The frontend expects the backend to be available at:
+
+http://127.0.0.1:8000
+
+
+## 6. Recommended Run Order
+
+Use this order when starting the project:
+
+1. Start XAMPP.
+2. Start Apache and MySQL.
+3. Confirm the `webapp` database exists and was imported from `doc/webapp_final.sql`.
+4. Start the FastAPI backend.
+5. Start the React frontend.
+6. Open:
+
+http://localhost:5173
+
+
+## 7. Manual Test Checklist
+
+After the backend and frontend are running, test the following:
+
+### Public Visitor
+
+* Open the homepage.
+* Browse the trip catalog.
+* Search by title, description, or location.
+* Open a trip details page.
+* Confirm that booking requires login.
+
+### Normal User
+
+Login with:
+
+user@wanderlust.test
+user123
+
+Then test:
+
+* Book a trip.
+* Enter card-like demo payment details.
+* Complete simulated payment.
+* Confirm the booking appears in **My Bookings**.
+* Confirm trip availability decreases after successful payment.
+* Create a pending booking and confirm it can be cancelled if still pending.
+
+### Admin User
+
+Login with:
+
+admin@wanderlust.test
+admin123
+
+Then test:
+
+* Open the admin dashboard.
+* View trips, users, and bookings.
+* Add a new trip.
+* Edit an existing trip.
+* Confirm the trip appears in the public catalog.
+
+
+## 8. Payment Simulation
+
+The payment flow is an academic simulation only.
+
+No real payment is processed.
+
+The application accepts non-real card-like details for the demo and stores only the last four digits in the `payments` table.
+
+
+## 9. Troubleshooting
+
+### Backend cannot connect to the database
+
+Check that:
+
+* XAMPP MySQL is running.
+* The database is named `webapp`.
+* `doc/webapp_final.sql` was imported successfully.
+* `DATABASE_URL` is set correctly.
+
+Windows PowerShell example:
+
+$env:DATABASE_URL="mysql+pymysql://root:@localhost/webapp"
+
+macOS/Linux example:
+
+export DATABASE_URL="mysql+pymysql://root:@localhost/webapp"
+
+
+### Windows dependency installation fails because of `uvloop`
+
+Use:
+
+pip install -r requirements-windows.txt
+
+`uvloop` is not supported on Windows, so it is intentionally excluded from the Windows requirements file.
+
+### Frontend cannot load trips
+
+Check that:
+
+* Backend is running at `http://127.0.0.1:8000`.
+* Frontend is running at `http://localhost:5173`.
+* The database has been imported.
+* `/trips/` works in FastAPI docs.
+
+Open:
+
+http://127.0.0.1:8000/docs
+
+Then test:
+
+GET /trips/
+
+### Login works but booking fails after a database reset
+
+If the database was reset or re-imported, the browser may still contain an old token.
+
+Fix:
+
+1. Log out.
+2. Log in again.
+3. Retry the booking.
+
+If needed, clear browser local storage for `localhost:5173`.
+
+### Port already in use
+
+If the backend port is busy, stop the previous backend process or use another port:
+
+python -m uvicorn main:app --reload --port 8001
+
+If using a different backend port, update the frontend API base URL accordingly.
+
+
+## 10. Final Notes
+
+For final university evaluation, use:
+
+doc/webapp_final.sql
+
+as the official database import file.
+
+Do not use Alembic as the final setup path for this submission.
+
+Run the checklist in:
+
+doc/final-qa-checklist.md
+
+before creating the final release or ZIP submission.
